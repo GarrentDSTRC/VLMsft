@@ -110,19 +110,33 @@ def fine_tune(config_path="./config/single_gpu_config.yaml"):
     print(f"训练集准备完成，共 {len(train_dataset)} 个样本")
     print(f"验证集准备完成，共 {len(eval_dataset)} 个样本")
 
-    # 配置LoRA - 使用配置文件中的参数
-    peft_config = LoraConfig(
-        task_type=TaskType.CAUSAL_LM,  # 修正task_type
-        inference_mode=False,
-        r=config['lora_r'],
-        lora_alpha=config['lora_alpha'],
-        lora_dropout=config['lora_dropout'],
-        target_modules=config['target_modules']
-    )
-
-    # 应用LoRA配置
-    model = get_peft_model(model, peft_config)
-    model.print_trainable_parameters()
+    # 根据配置选择微调方法
+    if config['finetune_method'] == 'lora':
+        # 配置LoRA - 使用配置文件中的参数
+        from peft import LoraConfig, get_peft_model, TaskType
+        peft_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,  # 修正task_type
+            inference_mode=False,
+            r=config['lora_r'],
+            lora_alpha=config['lora_alpha'],
+            lora_dropout=config['lora_dropout'],
+            target_modules=config['target_modules']
+        )
+        # 应用LoRA配置
+        model = get_peft_model(model, peft_config)
+        # 只有在LoRA模式下才有print_trainable_parameters方法
+        model.print_trainable_parameters()
+    elif config['finetune_method'] == 'full':
+        # 全量微调 - 不应用LoRA，直接使用原始模型
+        print("使用全量微调，所有参数都将被更新")
+        # 为全量微调打印模型参数信息
+        total_params = sum(p.numel() for p in model.parameters())
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"总参数: {total_params:,}")
+        print(f"可训练参数: {trainable_params:,}")
+        print(f"可训练参数占比: {100 * trainable_params / total_params:.2f}%")
+    else:
+        raise ValueError(f"未知的微调方法: {config['finetune_method']}，请使用 'lora' 或 'full'")
 
     # 训练参数 - 使用配置文件中的参数
     training_args = TrainingArguments(
@@ -144,11 +158,12 @@ def fine_tune(config_path="./config/single_gpu_config.yaml"):
         remove_unused_columns=False,  # 不删除列，因为我们稍后手动处理
         gradient_checkpointing=config['gradient_checkpointing'],
         fp16=config.get('fp16', False),  # 使用配置中指定的精度
+        bf16=config.get('bf16', False),
         logging_dir=config['logging_dir'],
         dataloader_pin_memory=config['dataloader_pin_memory'],
         dataloader_num_workers=config['dataloader_num_workers'],
         max_grad_norm=config['max_grad_norm'],
-        ddp_find_unused_parameters=config['ddp_find_unused_parameters'],
+        ddp_find_unused_parameters=config.get('ddp_find_unused_parameters', False),
         dataloader_drop_last=config['dataloader_drop_last'],
     )
 

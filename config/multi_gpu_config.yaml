@@ -1,6 +1,9 @@
 # Qwen3-VL 多卡微调配置文件
 # ==================================
 
+# 微调方法配置
+finetune_method: "full"  # 微调方法: "lora" 或 "full" (全量微调)
+
 # 模型配置
 model_name: "/root/.cache/modelscope/hub/models/qwen/Qwen3-VL-2B-Instruct"  # 基础模型路径
 model_dtype: "bfloat16"  # 模型精度 (bfloat16 通常更适合大模型)
@@ -9,9 +12,9 @@ model_dtype: "bfloat16"  # 模型精度 (bfloat16 通常更适合大模型)
 dataset_path: "./vlm_finetune_dataset.json"  # 训练数据集路径
 validation_split: 0.1  # 验证集比例
 
-# LoRA 配置
+# LoRA 配置 (仅在 finetune_method = "lora" 时生效)
 lora_r: 64  # LoRA秩 (控制适配器矩阵大小)
-lora_alpha: 16  # LoRA缩放因子 
+lora_alpha: 16  # LoRA缩放因子
 lora_dropout: 0.05  # LoRA层的dropout概率
 target_modules:  # 需要应用LoRA的模块列表
   - "q_proj"
@@ -43,6 +46,7 @@ overwrite_output_dir: true      # 是否覆盖输出目录
 
 # 训练优化设置
 gradient_checkpointing: true    # 是否启用梯度检查点节省显存
+fp16: false                     # 是否使用fp16混合精度训练
 bf16: true                      # 是否使用bfloat16混合精度训练
 max_grad_norm: 1.0              # 梯度裁剪最大范数
 logging_dir: "./logs"           # 日志目录

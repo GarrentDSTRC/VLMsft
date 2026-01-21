@@ -161,18 +161,32 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
     print(f"训练集准备完成，共 {len(train_dataset)} 个样本")
     print(f"验证集准备完成，共 {len(eval_dataset)} 个样本")
 
-    # 配置LoRA - 使用配置文件中的参数
-    peft_config = LoraConfig(
-        task_type=TaskType.CAUSAL_LM,
-        inference_mode=False,
-        r=config['lora_r'],
-        lora_alpha=config['lora_alpha'],
-        lora_dropout=config['lora_dropout'],
-        target_modules=config['target_modules']
-    )
-
-    # 应用LoRA配置
-    model = get_peft_model(model, peft_config)
+    # 根据配置选择微调方法
+    if config['finetune_method'] == 'lora':
+        # 配置LoRA - 使用配置文件中的参数
+        peft_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            inference_mode=False,
+            r=config['lora_r'],
+            lora_alpha=config['lora_alpha'],
+            lora_dropout=config['lora_dropout'],
+            target_modules=config['target_modules']
+        )
+        # 应用LoRA配置
+        model = get_peft_model(model, peft_config)
+        # 只有在LoRA模式下才有print_trainable_parameters方法
+        model.print_trainable_parameters()
+    elif config['finetune_method'] == 'full':
+        # 全量微调 - 不应用LoRA，直接使用原始模型
+        print("使用全量微调，所有参数都将被更新")
+        # 为全量微调打印模型参数信息
+        total_params = sum(p.numel() for p in model.parameters())
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"总参数: {total_params:,}")
+        print(f"可训练参数: {trainable_params:,}")
+        print(f"可训练参数占比: {100 * trainable_params / total_params:.2f}%")
+    else:
+        raise ValueError(f"未知的微调方法: {config['finetune_method']}，请使用 'lora' 或 'full'")
 
     # 训练参数 - 使用配置文件中的参数
     training_args = TrainingArguments(
@@ -223,8 +237,9 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
             model.module.disable_input_require_grads()
         model.disable_input_require_grads = disable_input_require_grads
 
-        # 访问peft模型的方法
-        model.module.print_trainable_parameters()
+        # 只有在LoRA模式下才访问peft模型的方法
+        if config['finetune_method'] == 'lora':
+            model.module.print_trainable_parameters()
     elif dist.is_initialized():  # 使用分布式数据并行训练
         print(f"初始化分布式训练，world_size: {world_size}, rank: {local_rank}")
         model = DDP(model, device_ids=[local_rank])
@@ -242,16 +257,35 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
             model.module.disable_input_require_grads()
         model.disable_input_require_grads = disable_input_require_grads
 
-        # 需要调整批次大小到每个进程的大小
-        per_device_batch_size = max(1, per_device_batch_size // world_size)
+        # 只有在LoRA模式下才访问peft模型的方法
+        if config['finetune_method'] == 'lora':
+            model.module.print_trainable_parameters()
+    elif dist.is_initialized():  # 使用分布式数据并行训练
+        print(f"初始化分布式训练，world_size: {world_size}, rank: {local_rank}")
+        model = DDP(model, device_ids=[local_rank])
 
-        # 访问peft模型的方法
-        model.module.print_trainable_parameters()
+        # 为DDP模型添加必要的方法以满足Trainer要求
+        def gradient_checkpointing_enable(**kwargs):
+            model.module.gradient_checkpointing_enable(**kwargs)
+        model.gradient_checkpointing_enable = gradient_checkpointing_enable
+
+        def enable_input_require_grads():
+            model.module.enable_input_require_grads()
+        model.enable_input_require_grads = enable_input_require_grads
+
+        def disable_input_require_grads():
+            model.module.disable_input_require_grads()
+        model.disable_input_require_grads = disable_input_require_grads
+
+        # 只有在LoRA模式下才访问peft模型的方法
+        if config['finetune_method'] == 'lora':
+            model.module.print_trainable_parameters()
     else:
         # 单GPU情况
-        model.print_trainable_parameters()
+        if config['finetune_method'] == 'lora':
+            model.print_trainable_parameters()
 
-    print(f"使用每设备批次大小: {per_device_batch_size}")
+    print(f"使用每设备批次大小: {config['per_device_train_batch_size']}")
     print("开始训练...")
 
     # 创建训练器
