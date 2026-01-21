@@ -1,0 +1,53 @@
+# Qwen3-VL 单卡微调配置文件
+# ==================================
+
+# 模型配置
+model_name: "/root/.cache/modelscope/hub/models/qwen/Qwen3-VL-2B-Instruct"  # 基础模型路径
+model_dtype: "float16"  # 模型精度 (float16/bfloat16)
+
+# 数据配置
+dataset_path: "./vlm_finetune_dataset.json"  # 训练数据集路径
+validation_split: 0.1  # 验证集比例
+
+# LoRA 配置
+lora_r: 64  # LoRA秩 (控制适配器矩阵大小)
+lora_alpha: 16  # LoRA缩放因子 
+lora_dropout: 0.05  # LoRA层的dropout概率
+target_modules:  # 需要应用LoRA的模块列表
+  - "q_proj"
+  - "k_proj"
+  - "v_proj"
+  - "o_proj"
+  - "gate_proj"
+  - "up_proj"
+  - "down_proj"
+  - "embed_tokens"
+  - "lm_head"
+
+# 训练超参数
+num_train_epochs: 3  # 训练轮数
+per_device_train_batch_size: 1  # 每个设备的训练批次大小
+per_device_eval_batch_size: 1   # 每个设备的评估批次大小
+gradient_accumulation_steps: 8  # 梯度累积步数 (模拟更大批次)
+learning_rate: 2.0e-04          # 学习率
+weight_decay: 0.05              # 权重衰减系数
+warmup_ratio: 0.1               # 预热比例 (学习率预热)
+
+# 日志和保存配置
+logging_steps: 10               # 日志记录间隔步数
+save_steps: 500                 # 模型保存间隔步数
+eval_steps: 20                  # 验证评估间隔步数
+save_total_limit: 3             # 最大保存检查点数量
+output_dir: "./qwen3-vl-2b-instruct-lora"  # 输出目录
+overwrite_output_dir: true      # 是否覆盖输出目录
+
+# 训练优化设置
+gradient_checkpointing: true    # 是否启用梯度检查点节省显存
+fp16: true                      # 是否使用混合精度训练
+max_grad_norm: 1.0              # 梯度裁剪最大范数
+logging_dir: "./logs"           # 日志目录
+
+# 数据加载器设置
+dataloader_pin_memory: false    # 是否固定内存 (可能影响数据传输效率)
+dataloader_num_workers: 0       # 数据加载器工作进程数
+dataloader_drop_last: true      # 是否丢弃最后一个不完整的批次

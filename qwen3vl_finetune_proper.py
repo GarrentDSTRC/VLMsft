@@ -1,0 +1,213 @@
+#!/usr/bin/env python
+"""
+使用Qwen3-VL模型进行微调 - 完全正确的数据处理版本
+"""
+import json
+import torch
+from datasets import Dataset
+from transformers import AutoModelForImageTextToText, AutoProcessor, TrainingArguments
+from peft import LoraConfig, get_peft_model, TaskType
+from torch.utils.data import DataLoader
+import os
+import yaml
+
+def load_config(config_path="./config/single_gpu_config.yaml"):
+    """加载配置文件"""
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+    return config
+
+
+def prepare_dataset(config):
+    """准备训练数据集"""
+    # 读取转换后的数据
+    with open(config['dataset_path'], 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    # 转换为HuggingFace Dataset格式
+    formatted_data = []
+    for item in data:
+        # 处理对话数据
+        conversations = item.get('conversations', [])
+        if not conversations:
+            continue
+
+        # 构建提示和响应
+        conversation_str = ""
+        for conv in conversations:
+            role = conv.get('role', '')
+            content = conv.get('content', '')
+
+            # 根据角色构建消息
+            if role == 'user':
+                conversation_str += f"<|user|>\n{content}"
+            elif role == 'assistant':
+                conversation_str += f"\n<|assistant|>\n{content}"
+
+        formatted_data.append({
+            "text": conversation_str,
+        })
+
+    # 创建Dataset对象
+    dataset = Dataset.from_list(formatted_data)
+    return dataset
+
+def fine_tune(config_path="./config/single_gpu_config.yaml"):
+    """开始微调过程"""
+    print("开始加载Qwen3-VL模型...")
+
+    # 加载配置
+    config = load_config(config_path)
+    print(f"使用配置文件: {config_path}")
+
+    # 加载模型和处理器 - 使用推荐的类名
+    model_name = config['model_name']
+
+    # 检查CUDA是否可用并设置GPU设备
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        n_gpu = torch.cuda.device_count()
+        print(f"检测到 {n_gpu} 个GPU设备")
+
+        # 如果有多个GPU，选择第一个
+        if n_gpu > 1:
+            print(f"注意：检测到多个GPU ({n_gpu})，将使用单个GPU进行训练以避免设备不匹配")
+            # 强制使用单个GPU
+            os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    else:
+        device = torch.device("cpu")
+        print("未检测到CUDA设备，将使用CPU进行训练")
+
+    # 根据配置选择模型精度
+    dtype = torch.float16 if config['model_dtype'] == 'float16' else torch.bfloat16
+
+    # 使用正确的模型类
+    model = AutoModelForImageTextToText.from_pretrained(
+        model_name,
+        torch_dtype=dtype,  # 使用配置中指定的精度
+        device_map="auto",
+        trust_remote_code=True,
+        low_cpu_mem_usage=True
+    )
+
+    processor = AutoProcessor.from_pretrained(
+        model_name,
+        trust_remote_code=True
+    )
+
+    print("模型加载完成")
+    print(f"模型参数数量: {model.num_parameters():,}")
+
+    # 准备数据集
+    print("准备数据集...")
+    full_dataset = prepare_dataset(config)
+
+    # 划分训练集和验证集 (根据配置文件)
+    split_dataset = full_dataset.train_test_split(test_size=config['validation_split'])
+    train_dataset = split_dataset['train']
+    eval_dataset = split_dataset['test']
+
+    print(f"训练集准备完成，共 {len(train_dataset)} 个样本")
+    print(f"验证集准备完成，共 {len(eval_dataset)} 个样本")
+
+    # 配置LoRA - 使用配置文件中的参数
+    peft_config = LoraConfig(
+        task_type=TaskType.CAUSAL_LM,  # 修正task_type
+        inference_mode=False,
+        r=config['lora_r'],
+        lora_alpha=config['lora_alpha'],
+        lora_dropout=config['lora_dropout'],
+        target_modules=config['target_modules']
+    )
+
+    # 应用LoRA配置
+    model = get_peft_model(model, peft_config)
+    model.print_trainable_parameters()
+
+    # 训练参数 - 使用配置文件中的参数
+    training_args = TrainingArguments(
+        output_dir=config['output_dir'],
+        overwrite_output_dir=config['overwrite_output_dir'],
+        num_train_epochs=config['num_train_epochs'],
+        per_device_train_batch_size=config['per_device_train_batch_size'],
+        per_device_eval_batch_size=config['per_device_eval_batch_size'],
+        gradient_accumulation_steps=config['gradient_accumulation_steps'],
+        warmup_ratio=config['warmup_ratio'],
+        learning_rate=config['learning_rate'],
+        weight_decay=config['weight_decay'],
+        logging_steps=config['logging_steps'],
+        save_steps=config['save_steps'],
+        eval_steps=config['eval_steps'],
+        eval_strategy="steps",  # 现在有了验证集，可以使用steps策略
+        save_total_limit=config['save_total_limit'],
+        report_to=None,
+        remove_unused_columns=False,  # 不删除列，因为我们稍后手动处理
+        gradient_checkpointing=config['gradient_checkpointing'],
+        fp16=config.get('fp16', False),  # 使用配置中指定的精度
+        logging_dir=config['logging_dir'],
+        dataloader_pin_memory=config['dataloader_pin_memory'],
+        dataloader_num_workers=config['dataloader_num_workers'],
+        max_grad_norm=config['max_grad_norm'],
+        ddp_find_unused_parameters=config['ddp_find_unused_parameters'],
+        dataloader_drop_last=config['dataloader_drop_last'],
+    )
+
+    from transformers import Trainer
+
+    # 自定义数据整理器（Data Collator）来处理Qwen3-VL模型的输入
+    class DataCollatorForQwen3VL:
+        def __init__(self, processor):
+            self.processor = processor
+
+        def __call__(self, features):
+            # 提取文本
+            texts = [feature['text'] for feature in features]
+
+            # 处理文本 - 确保返回字典而不是嵌套张量
+            inputs = self.processor(
+                text=texts,
+                padding=True,
+                truncation=True,
+                max_length=2048,
+                return_tensors="pt"
+            )
+
+            # 确保所有张量都在同一设备上
+            if torch.cuda.is_available() and torch.cuda.device_count() > 0:
+                # 将所有张量移动到指定的主设备上
+                main_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+
+                # 移动所有张量到主设备
+                for key in inputs.keys():
+                    if isinstance(inputs[key], torch.Tensor):
+                        inputs[key] = inputs[key].to(main_device)
+
+            # 设置标签
+            inputs['labels'] = inputs['input_ids'].clone()
+            return inputs
+
+    print("开始训练...")
+    print("数据集预处理完成")
+
+    # 创建训练器
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,  # 提供验证集
+        data_collator=DataCollatorForQwen3VL(processor),  # 使用自定义数据整理器
+        processing_class=processor,  # 使用processing_class替换弃用的tokenizer
+    )
+
+    # 开始训练
+    trainer.train()
+
+    # 保存模型
+    trainer.save_model()
+    processor.save_pretrained(config['output_dir'])
+    print(f"模型微调完成，已保存到 {config['output_dir']}")
+
+if __name__ == "__main__":
+    import sys
+    config_path = sys.argv[1] if len(sys.argv) > 1 else "./config/single_gpu_config.yaml"
+    fine_tune(config_path=config_path)

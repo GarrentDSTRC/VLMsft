@@ -1,0 +1,9 @@
+{
+  "vlm_finetune_dataset_fixed": {
+    "hf_hub_url": null,
+    "script_url": null,
+    "local_dir": "/mnt/workspace/data/custom",
+    "file_name": "vlm_finetune_dataset_fixed.json",
+    "ranking": false
+  }
+}

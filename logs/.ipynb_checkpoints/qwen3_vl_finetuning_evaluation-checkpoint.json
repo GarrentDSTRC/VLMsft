@@ -1,0 +1,28 @@
+{
+  "test_samples_count": 5,
+  "base_model_accuracy": 1.0,
+  "fine_tuned_model_accuracy": 1.0,
+  "absolute_improvement": 0.0,
+  "relative_improvement_percent": 0.0,
+  "timestamp": "2026-01-21 15:35:06.306537",
+  "test_samples_preview": [
+    {
+      "question": "[IMAGE] [IMAGE]请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格",
+      "expected": "{\"analysis\": \"电机应该向-方向移动7步。\", \"direction\": \"-\", \"distance\": 7}",
+      "base_prediction": "{\"analysis\": \"电机应该向+方向移动5步。\", \"direction\": \"+\", \"distance\": 5}",
+      "fine_tuned_prediction": "{\"analysis\": \"电机应该向+方向移动5步。\", \"direction\": \"+\", \"distance\": 5}"
+    },
+    {
+      "question": "[IMAGE] [IMAGE]请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格",
+      "expected": "{\"analysis\": \"电机应该向-方向移动6步。\", \"direction\": \"-\", \"distance\": 6}",
+      "base_prediction": "{\"analysis\": \"电机应该向+方向移动5步。\", \"direction\": \"+\", \"distance\": 5}",
+      "fine_tuned_prediction": "{\"analysis\": \"电机应该向+方向移动5步。\", \"direction\": \"+\", \"distance\": 5}"
+    },
+    {
+      "question": "[IMAGE] [IMAGE]请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格",
+      "expected": "{\"analysis\": \"电机应该向-方向移动4步。\", \"direction\": \"-\", \"distance\": 4}",
+      "base_prediction": "{\"analysis\": \"电机应该向+方向移动5步。\", \"direction\": \"+\", \"distance\": 5}",
+      "fine_tuned_prediction": "{\"analysis\": \"电机应该向+方向移动5步。\", \"direction\": \"+\", \"distance\": 5}"
+    }
+  ]
+}

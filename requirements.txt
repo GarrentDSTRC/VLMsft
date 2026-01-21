@@ -1,0 +1,11 @@
+transformers
+datasets
+peft
+accelerate
+torch
+torchaudio
+torchvision
+pillow
+numpy
+scikit-learn
+pyyaml
