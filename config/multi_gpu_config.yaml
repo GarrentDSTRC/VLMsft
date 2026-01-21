@@ -2,7 +2,7 @@
 # ==================================
 
 # 微调方法配置
-finetune_method: "full"  # 微调方法: "lora" 或 "full" (全量微调)
+finetune_method: "lora"  # 微调方法: "lora" 或 "full" (全量微调)
 
 # 模型配置
 model_name: "/root/.cache/modelscope/hub/models/qwen/Qwen3-VL-2B-Instruct"  # 基础模型路径
@@ -41,13 +41,13 @@ logging_steps: 10               # 日志记录间隔步数
 save_steps: 500                 # 模型保存间隔步数
 eval_steps: 20                  # 验证评估间隔步数
 save_total_limit: 3             # 最大保存检查点数量
-output_dir: "./qwen3-vl-2b-instruct-lora-multigpu"  # 输出目录
+output_dir: "./qwen3-vl-2b-instruct-lora"  # 输出目录
 overwrite_output_dir: true      # 是否覆盖输出目录
 
 # 训练优化设置
 gradient_checkpointing: true    # 是否启用梯度检查点节省显存
-fp16: false                     # 是否使用fp16混合精度训练
-bf16: true                      # 是否使用bfloat16混合精度训练
+fp16: true                    # 是否使用fp16混合精度训练
+bf16: false                     # 是否使用bfloat16混合精度训练
 max_grad_norm: 1.0              # 梯度裁剪最大范数
 logging_dir: "./logs"           # 日志目录
 

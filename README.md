@@ -1,3 +1,7 @@
+   - 单卡训练：python qwen3vl_finetune_proper.py config/single_gpu_config_full.yaml
+   - 多卡训练：python qwen3vl_finetune_proper_multi_gpu.py --config config/multi_gpu_config_full.yaml
+   - 评估脚本：python evaluate_finetuning_final.py config/evaluation_config.yaml
+    - 评估脚本：python evaluate_finetuning_final.py config/evaluation_config_full.yaml
 # Qwen3-VL-2B-Instruct 微调项目完整指南
 
 ## 下载模型
@@ -307,14 +311,15 @@ test_model_performance()
 - 使用bf16精度提高训练稳定性
 
 ### 配置参数详解
+- `finetune_method`: 微调方法 ("lora" 或 "full")
 - `model_name`: 基础模型路径
 - `model_dtype`: 模型精度 (float16/bfloat16)
 - `dataset_path`: 训练数据集路径
 - `validation_split`: 验证集比例
-- `lora_r`: LoRA秩，控制适配器参数量
-- `lora_alpha`: LoRA缩放因子
-- `lora_dropout`: LoRA层dropout概率
-- `target_modules`: 应用LoRA的目标模块
+- `lora_r`: LoRA秩，控制适配器参数量（仅在lora方法时有效）
+- `lora_alpha`: LoRA缩放因子（仅在lora方法时有效）
+- `lora_dropout`: LoRA层dropout概率（仅在lora方法时有效）
+- `target_modules`: 应用LoRA的目标模块（仅在lora方法时有效）
 - `num_train_epochs`: 训练轮数
 - `per_device_train_batch_size`: 每设备训练批次大小
 - `learning_rate`: 学习率

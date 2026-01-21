@@ -1,0 +1,25 @@
+# Qwen3-VL 模型评估配置文件
+# ==================================
+
+# 模型配置
+base_model_path: "/root/.cache/modelscope/hub/models/qwen/Qwen3-VL-2B-Instruct"  # 基础模型路径
+
+# 模型搜索路径配置 (用于寻找微调后的模型)
+finetuned_model_paths:
+  - "./qwen3-vl-2b-instruct-full"              # 全量微调模型路径
+  - "./qwen3-vl-2b-instruct-lora"              # LoRA单卡模型路径
+  - "./qwen3-vl-2b-instruct-lora-multigpu"     # LoRA多卡模型路径
+  - "./logs/qwen3-vl-2b-instruct-lora"         # LoRA单卡模型路径(日志)
+  - "./logs/qwen3-vl-2b-instruct-lora-multigpu" # LoRA多卡模型路径(日志)
+
+# 数据配置
+test_dataset_path: "./vlm_finetune_dataset.json"  # 测试数据集路径
+
+# 评估配置
+max_test_samples: 60  # 最大测试样本数
+max_preview_samples: 3  # 结果预览样本数
+results_output_dir: "./logs/"  # 结果输出目录
+
+# 生成配置
+max_tokens: 256  # 最大生成令牌数
+temperature: 0.1  # 生成温度

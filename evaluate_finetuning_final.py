@@ -18,21 +18,47 @@ import re
 from sklearn.metrics import accuracy_score, f1_score, precision_recall_fscore_support
 import numpy as np
 import os
+import yaml
+
 # 确保日志目录存在
 os.makedirs('./logs', exist_ok=True)
 
-def load_test_data():
+def load_config(config_path="./config/evaluation_config.yaml"):
+    """加载评估配置文件"""
+    # 如果配置文件不存在，使用默认设置
+    if not os.path.exists(config_path):
+        print(f"配置文件 {config_path} 不存在，使用默认设置")
+        return {
+            'test_dataset_path': './vlm_finetune_dataset.json',
+            'base_model_path': '/root/.cache/modelscope/hub/models/qwen/Qwen3-VL-2B-Instruct',
+            'results_output_dir': './logs/',
+            'max_test_samples': 60,
+            'max_preview_samples': 3,
+            'max_tokens': 256,
+            'temperature': 0.1
+        }
+
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+    return config
+
+def load_test_data(config):
     """加载测试数据集"""
-    print("从 ./vlm_test_dataset.json 加载测试数据...")
+    print(f"从 {config['test_dataset_path']} 加载测试数据...")
 
     try:
         #with open('./vlm_test_dataset.json', 'r', encoding='utf-8') as f:
-        with open('./vlm_finetune_dataset.json', 'r', encoding='utf-8') as f:
+        with open(config['test_dataset_path'], 'r', encoding='utf-8') as f:
             raw_data = json.load(f)
     except FileNotFoundError:
         print("警告: 找不到vlm_test_dataset.json，尝试使用训练数据的最后部分作为测试集...")
-        with open('./vlm_finetune_dataset_fixed.json', 'r', encoding='utf-8') as f:
-            raw_data = json.load(f)
+        backup_path = config['test_dataset_path'].replace('.json', '_fixed.json')
+        try:
+            with open(backup_path, 'r', encoding='utf-8') as f:
+                raw_data = json.load(f)
+        except FileNotFoundError:
+            print(f"错误: 找不到备用数据集文件 {backup_path}")
+            return []
         # 使用最后10%作为测试集
         split_idx = int(0.9 * len(raw_data))
         raw_data = raw_data[split_idx:]
@@ -84,9 +110,9 @@ def load_test_data():
     print(f"加载了 {len(test_data)} 个测试样本")
     return test_data
 
-def prepare_model(is_finetuned=False):
+def prepare_model(config, is_finetuned=False):
     """准备模型 - 基础模型或微调模型"""
-    model_name = "/root/.cache/modelscope/hub/models/qwen/Qwen3-VL-2B-Instruct"
+    model_name = config['base_model_path']
 
     if is_finetuned:
         print("准备微调后的模型...")
@@ -100,30 +126,99 @@ def prepare_model(is_finetuned=False):
             low_cpu_mem_usage=True
         )
 
-        # 尝试加载LoRA适配器
+        # 尝试加载微调模型（可能是LoRA或全量微调）
         try:
             from peft import PeftModel
-            # Check for both single GPU and multi GPU model paths in root directory
-            lora_paths = [
-                # "./qwen3-vl-2b-instruct-lora",           # Single GPU version
-                "./qwen3-vl-2b-instruct-lora-multigpu",  # Multi GPU version
-            ]
+            import json
 
-            lora_path = None
-            for path in lora_paths:
-                if os.path.exists(path):
-                    lora_path = path
-                    print(f"加载LoRA适配器: {lora_path}")
-                    break
+            # 从配置文件获取模型搜索路径
+            model_paths = config.get('finetuned_model_paths', [
+                "./qwen3-vl-2b-instruct-full",          # 全量微调模型路径
+                "./qwen3-vl-2b-instruct-lora",          # LoRA单卡模型路径
+                "./qwen3-vl-2b-instruct-lora-multigpu", # LoRA多卡模型路径
+                "./logs/qwen3-vl-2b-instruct-lora",      # LoRA单卡模型路径(日志)
+                "./logs/qwen3-vl-2b-instruct-lora-multigpu"  # LoRA多卡模型路径(日志)
+            ])
 
-            if lora_path:
-                model = PeftModel.from_pretrained(model, lora_path)
-                model = model.merge_and_unload()  # 合并LoRA权重进行评估
-                print("LoRA适配器已合并到基础模型中")
-            else:
-                print(f"警告: LoRA适配器路径不存在于任何预期位置: {lora_paths}")
+            loaded_model = False
+            for model_path in model_paths:
+                if os.path.exists(model_path):
+                    print(f"发现模型路径: {model_path}")
+
+                    # 检查是否为全量微调模型
+                    config_path = os.path.join(model_path, "config.json")
+                    if os.path.exists(config_path):
+                        with open(config_path, 'r', encoding='utf-8') as f:
+                            config = json.load(f)
+
+                        # 检查配置中是否有adapter相关的信息来判断模型类型
+                        has_adapter_info = any(key in config for key in ["peft_type", "adapter_config", "adapters"])
+
+                        if has_adapter_info:
+                            # 这是一个LoRA模型
+                            print(f"加载LoRA适配器: {model_path}")
+                            model = PeftModel.from_pretrained(model, model_path)
+                            model = model.merge_and_unload()  # 合并LoRA权重进行评估
+                            print("LoRA适配器已合并到基础模型中")
+                            loaded_model = True
+                            break
+                        else:
+                            # 这可能是一个全量微调模型
+                            print(f"加载全量微调模型: {model_path}")
+                            model = AutoModelForVision2Seq.from_pretrained(
+                                model_path,
+                                torch_dtype=torch.bfloat16,
+                                device_map="auto",
+                                trust_remote_code=True,
+                                low_cpu_mem_usage=True
+                            )
+                            loaded_model = True
+                            break
+                    else:
+                        # 如果没有配置文件，尝试作为LoRA模型加载
+                        try:
+                            print(f"尝试作为LoRA模型加载: {model_path}")
+                            model = PeftModel.from_pretrained(model, model_path)
+                            model = model.merge_and_unload()  # 合并LoRA权重进行评估
+                            print("LoRA适配器已合并到基础模型中")
+                            loaded_model = True
+                            break
+                        except:
+                            print(f"无法作为LoRA模型加载: {model_path}")
+                            continue
+
+            if not loaded_model:
+                print(f"警告: 未找到有效的微调模型路径")
+
+        except ImportError:
+            print(f"警告: PEFT库未安装或不可用，尝试直接加载模型")
+            # 如果无法导入peft，尝试作为完整模型加载
+            model_paths = config.get('finetuned_model_paths', [
+                "./qwen3-vl-2b-instruct-full",
+                "./qwen3-vl-2b-instruct-lora",
+                "./qwen3-vl-2b-instruct-lora-multigpu",
+                "./logs/qwen3-vl-2b-instruct-lora",
+                "./logs/qwen3-vl-2b-instruct-lora-multigpu"
+            ])
+
+            for model_path in model_paths:
+                if os.path.exists(model_path):
+                    try:
+                        print(f"直接加载模型: {model_path}")
+                        model = AutoModelForVision2Seq.from_pretrained(
+                            model_path,
+                            torch_dtype=torch.bfloat16,
+                            device_map="auto",
+                            trust_remote_code=True,
+                            low_cpu_mem_usage=True
+                        )
+                        print(f"成功加载模型: {model_path}")
+                        break
+                    except Exception as e:
+                        print(f"加载模型失败 {model_path}: {e}")
+                        continue
         except Exception as e:
-            print(f"警告: 加载LoRA适配器失败: {e}")
+            print(f"警告: 加载微调模型失败: {e}")
     else:
         print("准备基础模型...")
         model = AutoModelForVision2Seq.from_pretrained(
@@ -141,7 +236,7 @@ def prepare_model(is_finetuned=False):
 
     return model, processor
 
-def evaluate_model(model, processor, test_data, model_name="模型", log_details=None):
+def evaluate_model(model, processor, test_data, config, model_name="模型", log_details=None):
     """评估模型性能"""
     print(f"\n开始评估 {model_name}...")
 
@@ -152,7 +247,7 @@ def evaluate_model(model, processor, test_data, model_name="模型", log_details
     detailed_results = []  # 存储详细结果
 
     # 限制测试样本数量以节省时间
-    test_samples = test_data[:min(60, len(test_data))]
+    test_samples = test_data[:min(config.get('max_test_samples', 60), len(test_data))]
 
     for i, item in enumerate(test_samples):
         print(f"处理测试样本 {i+1}/{len(test_samples)}", end='', flush=True)
@@ -196,8 +291,8 @@ def evaluate_model(model, processor, test_data, model_name="模型", log_details
             with torch.no_grad():
                 generated_ids = model.generate(
                     **inputs,
-                    max_new_tokens=256,
-                    temperature=0.1,
+                    max_new_tokens=config.get('max_tokens', 256),
+                    temperature=config.get('temperature', 0.1),
                     do_sample=False,
                     pad_token_id=processor.tokenizer.eos_token_id
                 )
@@ -280,26 +375,32 @@ def main():
     print("Qwen3-VL-2B-Instruct 模型微调效果评估")
     print("="*70)
 
+    # 加载配置
+    import sys
+    config_path = sys.argv[1] if len(sys.argv) > 1 else "./config/evaluation_config.yaml"
+    config = load_config(config_path)
+    print(f"使用评估配置: {config_path}")
+
     # 加载测试数据
-    test_data = load_test_data()
+    test_data = load_test_data(config)
 
     if len(test_data) == 0:
         print("错误: 测试数据为空")
         return
 
-    print(f"使用 {min(60, len(test_data))} 个样本进行评估")
+    print(f"使用 {min(config.get('max_test_samples', 60), len(test_data))} 个样本进行评估")
 
     # 评估基础模型
     print("\n" + "-"*60)
     print("评估基础模型 (Qwen3-VL-2B-Instruct)...")
-    base_model, base_processor = prepare_model(is_finetuned=False)
-    base_acc, base_preds, base_refs, base_detailed_results = evaluate_model(base_model, base_processor, test_data, "基础模型")
+    base_model, base_processor = prepare_model(config, is_finetuned=False)
+    base_acc, base_preds, base_refs, base_detailed_results = evaluate_model(base_model, base_processor, test_data, config, "基础模型")
 
     # 评估微调模型
     print("\n" + "-"*60)
     print("评估微调模型 (Qwen3-VL-2B-Instruct-LoRA)...")
-    ft_model, ft_processor = prepare_model(is_finetuned=True)
-    ft_acc, ft_preds, ft_refs, ft_detailed_results = evaluate_model(ft_model, ft_processor, test_data, "微调模型")
+    ft_model, ft_processor = prepare_model(config, is_finetuned=True)
+    ft_acc, ft_preds, ft_refs, ft_detailed_results = evaluate_model(ft_model, ft_processor, test_data, config, "微调模型")
 
     # 计算改进
     acc_improvement = ft_acc - base_acc
@@ -369,7 +470,7 @@ def main():
 
     # 保存评估结果
     evaluation_results = {
-        'test_samples_count': min(60, len(test_data)),
+        'test_samples_count': min(config.get('max_test_samples', 60), len(test_data)),
         'base_model_accuracy': base_acc,
         'fine_tuned_model_accuracy': ft_acc,
         'absolute_improvement': acc_improvement,
@@ -382,7 +483,7 @@ def main():
                 'base_prediction': base_preds[i][:200] if i < len(base_preds) else '',
                 'fine_tuned_prediction': ft_preds[i][:200] if i < len(ft_preds) else ''
             }
-            for i in range(min(3, len(test_data)))
+            for i in range(min(config.get('max_preview_samples', 3), len(test_data)))
         ],
         'detailed_comparison_results': comparison_results,
         'base_model_detailed_results': base_detailed_results,
@@ -390,18 +491,18 @@ def main():
     }
 
     # 保存结果到JSON文件
-    result_file = "./logs/qwen3_vl_finetuning_evaluation.json"
+    result_file = config['results_output_dir'] + "qwen3_vl_finetuning_evaluation.json"
     with open(result_file, 'w', encoding='utf-8') as f:
         json.dump(evaluation_results, f, ensure_ascii=False, indent=2)
 
     # 保存详细的文本日志
-    log_file = "./logs/fine_tuning_evaluation_final.log"
+    log_file = config['results_output_dir'] + "fine_tuning_evaluation_final.log"
     with open(log_file, 'w', encoding='utf-8') as f:
         f.write("="*70 + "\n")
         f.write("Qwen3-VL-2B-Instruct 模型微调效果评估详细日志\n")
         f.write("="*70 + "\n")
         f.write(f"评估时间: {datetime.datetime.now()}\n")
-        f.write(f"测试样本数: {min(60, len(test_data))}\n")
+        f.write(f"测试样本数: {min(config.get('max_test_samples', 60), len(test_data))}\n")
         f.write(f"基础模型准确率: {base_acc:.4f}\n")
         f.write(f"微调模型准确率: {ft_acc:.4f}\n")
         f.write(f"绝对改进: {acc_improvement:+.4f}\n")
