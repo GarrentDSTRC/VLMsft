@@ -6,17 +6,17 @@ base_model_path: "/root/.cache/modelscope/hub/models/qwen/Qwen3-VL-2B-Instruct" 
 
 # 模型搜索路径配置 (用于寻找微调后的模型)
 finetuned_model_paths:
-  - "./qwen3-vl-2b-instruct-lora"              
+  - "./qwen3-vl-2b-instruct-lora"              # 全量微调模型路径
 
 
 # 数据配置
-test_dataset_path: "./vlm_finetune_dataset.json"  # 测试数据集路径
+test_dataset_path: ".data/vlm_finetune_dataset_fixed/testset.json"  # 测试数据集路径data/vlm_finetune_dataset_fixed/testset.json
 
 # 评估配置
 max_test_samples: 60  # 最大测试样本数
-max_preview_samples: 3  # 结果预览样本数
+max_preview_samples: 10  # 结果预览样本数
 results_output_dir: "./logs/"  # 结果输出目录
 
 # 生成配置
 max_tokens: 256  # 最大生成令牌数
-temperature: 0.1  # 生成温度
+temperature: 0.9  # 生成温度

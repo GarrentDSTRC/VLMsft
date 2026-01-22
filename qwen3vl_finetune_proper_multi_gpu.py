@@ -106,10 +106,72 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
     config = load_config(config_path)
     print(f"使用配置文件: {config_path}")
 
+    # 检查是否存在检查点，如果有则从中恢复训练
+    output_dir = config['output_dir']
+    resume_from_checkpoint = None
+
     # 获取GPU数量
     n_gpu = torch.cuda.device_count()
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     world_size = int(os.environ.get("WORLD_SIZE", 1))
+
+    # 初始化分布式训练
+    if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
+        rank = int(os.environ["RANK"])
+        world_size = int(os.environ['WORLD_SIZE'])
+        gpu = int(os.environ['LOCAL_RANK'])
+    elif 'SLURM_PROCID' in os.environ:
+        rank = int(os.environ['SLURM_PROCID'])
+        gpu = rank % torch.cuda.device_count()
+    else:
+        print('Not using distributed mode')
+        rank = 0  # 设定默认rank为0
+
+    # 只在主进程(rank 0)中查找检查点
+    if rank == 0:
+        # 查找最新的检查点
+        if os.path.exists(output_dir):
+            checkpoints = [d for d in os.listdir(output_dir) if d.startswith("checkpoint-")]
+            if checkpoints:
+                checkpoints = sorted(checkpoints, key=lambda x: int(x.split('-')[1]))
+                resume_from_checkpoint = os.path.join(output_dir, checkpoints[-1])
+                print(f"发现检查点，将从 {resume_from_checkpoint} 继续训练")
+            else:
+                print(f"输出目录 {output_dir} 已存在但没有检查点，将从头开始训练")
+        else:
+            print(f"输出目录 {output_dir} 不存在，将创建新目录并从头开始训练")
+
+    # 同步所有进程，确保它们都获取到相同的resume_from_checkpoint状态
+    if dist.is_initialized():
+        # 创建一个包含检查点路径存在状态的张量
+        resume_flag = torch.tensor(1 if resume_from_checkpoint is not None else 0, device=f"cuda:{gpu}" if torch.cuda.is_available() and gpu < torch.cuda.device_count() else "cpu")
+        dist.broadcast(resume_flag, src=0)
+
+        # 如果检查点存在，需要同步路径信息
+        if resume_flag.item() == 1 and rank != 0:
+            # 使用一个固定的路径长度来同步路径
+            max_path_len = 512
+            path_tensor = torch.zeros(max_path_len, dtype=torch.uint8, device=f"cuda:{gpu}" if torch.cuda.is_available() and gpu < torch.cuda.device_count() else "cpu")
+            dist.broadcast(path_tensor, src=0)
+
+            # 将张量转换回字符串
+            path_bytes = path_tensor.cpu().numpy().astype('uint8')
+            resume_from_checkpoint = bytes(path_bytes[path_bytes != 0]).decode('utf-8', errors='ignore')
+        elif resume_flag.item() == 1 and rank == 0:
+            # 主进程发送路径
+            max_path_len = 512
+            path_bytes = list(resume_from_checkpoint.encode('utf-8'))
+            path_tensor = torch.zeros(max_path_len, dtype=torch.uint8, device=f"cuda:{gpu}" if torch.cuda.is_available() and gpu < torch.cuda.device_count() else "cpu")
+            path_tensor[:len(path_bytes)] = torch.tensor(path_bytes)
+            dist.broadcast(path_tensor, src=0)
+    else:
+        # 非分布式训练，直接使用local_rank判断
+        if local_rank == 0:
+            # 已经在上面设置了resume_from_checkpoint
+            pass
+        else:
+            # 非分布式训练下，其他local_rank不会存在，所以不需要处理
+            resume_from_checkpoint = None
 
     print(f"启动训练，当前节点GPU数量: {n_gpu}")
     print(f"本地Rank: {local_rank}, 总世界大小: {world_size}")
@@ -128,13 +190,25 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
 
     # 使用合适的模型精度
     dtype = torch.bfloat16 if config['model_dtype'] == 'bfloat16' else torch.float16
-    model = AutoModelForImageTextToText.from_pretrained(
-        model_name,
-        torch_dtype=dtype,  # 使用配置文件中指定的精度
-        device_map=f"cuda:{local_rank}",  # 为DDP设置正确的device_map
-        trust_remote_code=True,
-        low_cpu_mem_usage=True
-    )
+
+    # 如果是从检查点恢复，则加载检查点中的模型
+    if resume_from_checkpoint is not None and config['finetune_method'] == 'lora':
+        print(f"从检查点 {resume_from_checkpoint} 加载模型")
+        model = AutoModelForImageTextToText.from_pretrained(
+            resume_from_checkpoint,
+            torch_dtype=dtype,
+            device_map=f"cuda:{local_rank}",
+            trust_remote_code=True,
+            low_cpu_mem_usage=True
+        )
+    else:
+        model = AutoModelForImageTextToText.from_pretrained(
+            model_name,
+            torch_dtype=dtype,  # 使用配置文件中指定的精度
+            device_map=f"cuda:{local_rank}",  # 为DDP设置正确的device_map
+            trust_remote_code=True,
+            low_cpu_mem_usage=True
+        )
 
     # 将模型移至指定设备
     if torch.cuda.device_count() > 0:
@@ -161,19 +235,32 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
     print(f"训练集准备完成，共 {len(train_dataset)} 个样本")
     print(f"验证集准备完成，共 {len(eval_dataset)} 个样本")
 
+    # 保存验证集到指定路径，只在主进程(rank 0)中执行
+    if local_rank == 0:
+        test_set_path = "./data/vlm_finetune_dataset_fixed/testset.json"
+        os.makedirs(os.path.dirname(test_set_path), exist_ok=True)
+
+        # 将验证集转换为列表格式并保存
+        eval_data_list = [eval_dataset[i] for i in range(len(eval_dataset))]
+        with open(test_set_path, 'w', encoding='utf-8') as f:
+            json.dump(eval_data_list, f, ensure_ascii=False, indent=2)
+        print(f"验证集已保存到 {test_set_path}")
+
     # 根据配置选择微调方法
     if config['finetune_method'] == 'lora':
-        # 配置LoRA - 使用配置文件中的参数
-        peft_config = LoraConfig(
-            task_type=TaskType.CAUSAL_LM,
-            inference_mode=False,
-            r=config['lora_r'],
-            lora_alpha=config['lora_alpha'],
-            lora_dropout=config['lora_dropout'],
-            target_modules=config['target_modules']
-        )
-        # 应用LoRA配置
-        model = get_peft_model(model, peft_config)
+        # 如果不是从检查点恢复，则配置LoRA
+        if resume_from_checkpoint is None:
+            # 配置LoRA - 使用配置文件中的参数
+            peft_config = LoraConfig(
+                task_type=TaskType.CAUSAL_LM,
+                inference_mode=False,
+                r=config['lora_r'],
+                lora_alpha=config['lora_alpha'],
+                lora_dropout=config['lora_dropout'],
+                target_modules=config['target_modules']
+            )
+            # 应用LoRA配置
+            model = get_peft_model(model, peft_config)
         # 只有在LoRA模式下才有print_trainable_parameters方法
         model.print_trainable_parameters()
     elif config['finetune_method'] == 'full':
@@ -190,7 +277,7 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
 
     # 训练参数 - 使用配置文件中的参数
     training_args = TrainingArguments(
-        output_dir=config['output_dir'],
+        output_dir=output_dir,
         overwrite_output_dir=config['overwrite_output_dir'],
         num_train_epochs=config['num_train_epochs'],
         per_device_train_batch_size=config['per_device_train_batch_size'],
@@ -298,8 +385,8 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
         processing_class=processor,
     )
 
-    # 开始训练
-    trainer.train()
+    # 开始训练，如果存在检查点则从中恢复
+    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     # 在适当的时候保存模型 - 对于分布式训练，只有rank 0保存
     print("正在保存模型...")

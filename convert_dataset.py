@@ -32,12 +32,12 @@ def clean_json_data(data):
 
 # 尝试读取原始数据并处理可能的格式问题
 try:
-    with open('/mnt/workspace/vlm_finetune_dataset.json', 'r', encoding='utf-8') as f:
+    with open('/mnt/workspace/Alldata.json', 'r', encoding='utf-8') as f:
         original_data = json.load(f)
 except json.JSONDecodeError as e:
     print(f"原始JSON格式错误: {e}")
     # 尝试从原始内容修复
-    with open('/mnt/workspace/vlm_finetune_dataset.json', 'r', encoding='utf-8', errors='ignore') as f:
+    with open('/mnt/workspace/Alldata.json', 'r', encoding='utf-8', errors='ignore') as f:
         raw_data = f.read()
 
     # 移除控制字符

@@ -60,6 +60,22 @@ def fine_tune(config_path="./config/single_gpu_config.yaml"):
     config = load_config(config_path)
     print(f"使用配置文件: {config_path}")
 
+    # 检查是否存在检查点，如果有则从中恢复训练
+    output_dir = config['output_dir']
+    resume_from_checkpoint = None
+
+    # 查找最新的检查点
+    if os.path.exists(output_dir):
+        checkpoints = [d for d in os.listdir(output_dir) if d.startswith("checkpoint-")]
+        if checkpoints:
+            checkpoints = sorted(checkpoints, key=lambda x: int(x.split('-')[1]))
+            resume_from_checkpoint = os.path.join(output_dir, checkpoints[-1])
+            print(f"发现检查点，将从 {resume_from_checkpoint} 继续训练")
+        else:
+            print(f"输出目录 {output_dir} 已存在但没有检查点，将从头开始训练")
+    else:
+        print(f"输出目录 {output_dir} 不存在，将创建新目录并从头开始训练")
+
     # 加载模型和处理器 - 使用推荐的类名
     model_name = config['model_name']
 
@@ -110,20 +126,42 @@ def fine_tune(config_path="./config/single_gpu_config.yaml"):
     print(f"训练集准备完成，共 {len(train_dataset)} 个样本")
     print(f"验证集准备完成，共 {len(eval_dataset)} 个样本")
 
+    # 保存验证集到指定路径
+    test_set_path = "./data/vlm_finetune_dataset_fixed/testset.json"
+    os.makedirs(os.path.dirname(test_set_path), exist_ok=True)
+
+    # 将验证集转换为列表格式并保存
+    eval_data_list = [eval_dataset[i] for i in range(len(eval_dataset))]
+    with open(test_set_path, 'w', encoding='utf-8') as f:
+        json.dump(eval_data_list, f, ensure_ascii=False, indent=2)
+    print(f"验证集已保存到 {test_set_path}")
+
     # 根据配置选择微调方法
     if config['finetune_method'] == 'lora':
         # 配置LoRA - 使用配置文件中的参数
         from peft import LoraConfig, get_peft_model, TaskType
-        peft_config = LoraConfig(
-            task_type=TaskType.CAUSAL_LM,  # 修正task_type
-            inference_mode=False,
-            r=config['lora_r'],
-            lora_alpha=config['lora_alpha'],
-            lora_dropout=config['lora_dropout'],
-            target_modules=config['target_modules']
-        )
-        # 应用LoRA配置
-        model = get_peft_model(model, peft_config)
+
+        # 如果是从检查点恢复，尝试加载PEFT模型
+        if resume_from_checkpoint is not None:
+            print(f"从检查点 {resume_from_checkpoint} 加载LoRA模型")
+            model = AutoModelForImageTextToText.from_pretrained(
+                resume_from_checkpoint,
+                torch_dtype=dtype,
+                device_map="auto",
+                trust_remote_code=True,
+                low_cpu_mem_usage=True
+            )
+        else:
+            peft_config = LoraConfig(
+                task_type=TaskType.CAUSAL_LM,  # 修正task_type
+                inference_mode=False,
+                r=config['lora_r'],
+                lora_alpha=config['lora_alpha'],
+                lora_dropout=config['lora_dropout'],
+                target_modules=config['target_modules']
+            )
+            # 应用LoRA配置
+            model = get_peft_model(model, peft_config)
         # 只有在LoRA模式下才有print_trainable_parameters方法
         model.print_trainable_parameters()
     elif config['finetune_method'] == 'full':
@@ -140,7 +178,7 @@ def fine_tune(config_path="./config/single_gpu_config.yaml"):
 
     # 训练参数 - 使用配置文件中的参数
     training_args = TrainingArguments(
-        output_dir=config['output_dir'],
+        output_dir=output_dir,
         overwrite_output_dir=config['overwrite_output_dir'],
         num_train_epochs=config['num_train_epochs'],
         per_device_train_batch_size=config['per_device_train_batch_size'],
@@ -214,8 +252,8 @@ def fine_tune(config_path="./config/single_gpu_config.yaml"):
         processing_class=processor,  # 使用processing_class替换弃用的tokenizer
     )
 
-    # 开始训练
-    trainer.train()
+    # 开始训练，如果存在检查点则从中恢复
+    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     # 保存模型
     trainer.save_model()
