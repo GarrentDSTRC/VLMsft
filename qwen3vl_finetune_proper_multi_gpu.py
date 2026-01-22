@@ -227,8 +227,12 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
     print("准备数据集...")
     full_dataset = prepare_dataset(config)
 
+    # 读取原始数据用于后续保存验证集
+    with open(config['dataset_path'], 'r', encoding='utf-8') as f:
+        original_data = json.load(f)
+
     # 划分训练集和验证集 (根据配置文件)
-    split_dataset = full_dataset.train_test_split(test_size=config['validation_split'])
+    split_dataset = full_dataset.train_test_split(test_size=config['validation_split'], seed=42)  # 使用固定种子以确保一致性
     train_dataset = split_dataset['train']
     eval_dataset = split_dataset['test']
 
@@ -240,11 +244,25 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
         test_set_path = "./data/vlm_finetune_dataset_fixed/testset.json"
         os.makedirs(os.path.dirname(test_set_path), exist_ok=True)
 
-        # 将验证集转换为列表格式并保存
-        eval_data_list = [eval_dataset[i] for i in range(len(eval_dataset))]
+        # 获取验证集在原始数据中的索引
+        # 使用datasets库的info或indices属性来获取原始索引
+        if hasattr(split_dataset['test'], 'indices'):
+            val_indices = split_dataset['test'].indices
+        else:
+            # 如果无法获取indices，使用固定种子重新计算
+            import random
+            indices = list(range(len(original_data)))
+            random.seed(42)  # 使用与train_test_split相同的种子
+            random.shuffle(indices)
+            val_size = int(len(original_data) * config['validation_split'])
+            val_indices = indices[-val_size:]
+
+        # 从原始数据中提取对应索引的数据
+        validation_data = [original_data[i] for i in val_indices]
+
         with open(test_set_path, 'w', encoding='utf-8') as f:
-            json.dump(eval_data_list, f, ensure_ascii=False, indent=2)
-        print(f"验证集已保存到 {test_set_path}")
+            json.dump(validation_data, f, ensure_ascii=False, indent=2)
+        print(f"验证集已保存到 {test_set_path} (共 {len(validation_data)} 个样本)")
 
     # 根据配置选择微调方法
     if config['finetune_method'] == 'lora':
