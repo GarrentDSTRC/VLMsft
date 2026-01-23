@@ -321,7 +321,7 @@ def evaluate_model(model, processor, test_data, config, model_name="模型", log
 
                 if len(expected_words) > 0:
                     common_words = expected_words.intersection(predicted_words)
-                    if len(common_words) / len(expected_words) >= 0.6:  # 60%的关键词匹配
+                    if len(common_words) / len(expected_words) >= 0.8:  # 60%的关键词匹配
                         is_correct = True
 
             if is_correct:
