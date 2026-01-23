@@ -9,7 +9,7 @@ model_name: "/root/.cache/modelscope/hub/models/qwen/Qwen3-VL-2B-Instruct"  # �
 model_dtype: "bfloat16"  # 模型精度 (bfloat16 通常更适合大模型)
 
 # 数据配置
-dataset_path: "./vlm_finetune_dataset.json"  # 训练数据集路径
+dataset_path: "./data/vlm_finetune_dataset_fixed/train_0.json"  # 训练数据集路径
 validation_split: 0.1  # 验证集比例
 
 # LoRA 配置 (仅在 finetune_method = "lora" 时生效)
@@ -26,9 +26,19 @@ target_modules:  # 需要应用LoRA的模块列表
   - "down_proj"
   - "embed_tokens"
   - "lm_head"
+  - "visual.patch_embed.proj"  # 视觉补丁嵌入投影层
+  - "visual.pos_embed"  # 位置嵌入
+  - "visual.blocks.*.attn.qkv"  # 所有注意力层的QKV投影
+  - "visual.blocks.*.attn.proj"  # 所有注意力层的输出投影
+  - "visual.blocks.*.mlp.linear_fc1"  # 所有MLP前馈层的第一层
+  - "visual.blocks.*.mlp.linear_fc2"  # 所有MLP前馈层的第二层
+  - "visual.blocks.*.norm1"  # 所有层归一化层1
+  - "visual.blocks.*.norm2"  # 所有层归一化层2
+  - "visual.merger.*"  # 视觉合并模块
+  - "visual.deepstack_merger_list.*"  # 深堆栈合并模块
 
 # 训练超参数
-num_train_epochs: 3  # 训练轮数
+num_train_epochs: 150  # 训练轮数
 per_device_train_batch_size: 2  # 每个设备的训练批次大小 (多卡可以使用更大值)
 per_device_eval_batch_size: 2   # 每个设备的评估批次大小
 gradient_accumulation_steps: 4  # 梯度累积步数 (调节以保持与单卡相似的有效批次大小)
