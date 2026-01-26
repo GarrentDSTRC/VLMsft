@@ -8,7 +8,7 @@ import json
 import torch
 import datetime
 from datasets import Dataset
-from transformers import AutoModelForVision2Seq, AutoProcessor
+from transformers import AutoModelForImageTextToText, AutoProcessor
 from peft import PeftModel
 import os
 from PIL import Image
@@ -67,7 +67,7 @@ def load_test_data(config):
     test_data = []
     for item in raw_data:
         conversations = item.get('conversations', [])
-        if not conversations or len(conversations) < 0:
+        if not conversations or len(conversations) < 2:
             continue
 
         # 提取第一个用户问题和对应助手回答
@@ -76,7 +76,7 @@ def load_test_data(config):
 
         for conv in conversations:
             role = conv.get('role', '')
-            content = conv.get('content', [])  # content可能是字符串或列表
+            content = conv.get('content', [])
 
             if role == 'user':
                 if isinstance(content, str):
@@ -93,6 +93,12 @@ def load_test_data(config):
             elif role == 'assistant':
                 if isinstance(content, str):
                     assistant_msg = content
+                elif isinstance(content, dict):
+                    # assistant的内容可能是字典格式，如{"reasoning": "...", "action": [...]}
+                    if 'reasoning' in content:
+                        assistant_msg += content['reasoning']
+                    if 'action' in content:
+                        assistant_msg += " " + str(content['action'])
                 elif isinstance(content, list):
                     for content_item in content:
                         if isinstance(content_item, dict):
@@ -106,6 +112,7 @@ def load_test_data(config):
                 'question': user_msg.strip(),
                 'answer': assistant_msg.strip(),
             })
+        # 如果当前项没有有效的问题-答案对，跳过该条目
 
     print(f"加载了 {len(test_data)} 个测试样本")
     return test_data
@@ -114,14 +121,20 @@ def prepare_model(config, is_finetuned=False):
     """准备模型 - 基础模型或微调模型"""
     model_name = config['base_model_path']
 
+    # 确定使用的设备
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if torch.cuda.is_available():
+        # 使用特定的GPU设备而不是auto，以避免多GPU设备不匹配问题
+        device = torch.device('cuda:0')  # 强制使用第一块GPU
+
     if is_finetuned:
         print("准备微调后的模型...")
 
         # 加载基础模型
-        model = AutoModelForVision2Seq.from_pretrained(
+        model = AutoModelForImageTextToText.from_pretrained(
             model_name,
             torch_dtype=torch.bfloat16,
-            device_map="auto",
+            device_map=device,  # 使用指定的单一设备
             trust_remote_code=True,
             low_cpu_mem_usage=True
         )
@@ -157,7 +170,7 @@ def prepare_model(config, is_finetuned=False):
                         if has_adapter_info:
                             # 这是一个LoRA模型
                             print(f"加载LoRA适配器: {model_path}")
-                            model = PeftModel.from_pretrained(model, model_path)
+                            model = PeftModel.from_pretrained(model, model_path, device_map=device)
                             model = model.merge_and_unload()  # 合并LoRA权重进行评估
                             print("LoRA适配器已合并到基础模型中")
                             loaded_model = True
@@ -165,10 +178,10 @@ def prepare_model(config, is_finetuned=False):
                         else:
                             # 这可能是一个全量微调模型
                             print(f"加载全量微调模型: {model_path}")
-                            model = AutoModelForVision2Seq.from_pretrained(
+                            model = AutoModelForImageTextToText.from_pretrained(
                                 model_path,
                                 torch_dtype=torch.bfloat16,
-                                device_map="auto",
+                                device_map=device,  # 使用指定的单一设备
                                 trust_remote_code=True,
                                 low_cpu_mem_usage=True
                             )
@@ -178,7 +191,7 @@ def prepare_model(config, is_finetuned=False):
                         # 如果没有配置文件，尝试作为LoRA模型加载
                         try:
                             print(f"尝试作为LoRA模型加载: {model_path}")
-                            model = PeftModel.from_pretrained(model, model_path)
+                            model = PeftModel.from_pretrained(model, model_path, device_map=device)
                             model = model.merge_and_unload()  # 合并LoRA权重进行评估
                             print("LoRA适配器已合并到基础模型中")
                             loaded_model = True
@@ -205,10 +218,10 @@ def prepare_model(config, is_finetuned=False):
                 if os.path.exists(model_path):
                     try:
                         print(f"直接加载模型: {model_path}")
-                        model = AutoModelForVision2Seq.from_pretrained(
+                        model = AutoModelForImageTextToText.from_pretrained(
                             model_path,
                             torch_dtype=torch.bfloat16,
-                            device_map="auto",
+                            device_map=device,  # 使用指定的单一设备
                             trust_remote_code=True,
                             low_cpu_mem_usage=True
                         )
@@ -221,10 +234,10 @@ def prepare_model(config, is_finetuned=False):
             print(f"警告: 加载微调模型失败: {e}")
     else:
         print("准备基础模型...")
-        model = AutoModelForVision2Seq.from_pretrained(
+        model = AutoModelForImageTextToText.from_pretrained(
             model_name,
             torch_dtype=torch.bfloat16,
-            device_map="auto",
+            device_map=device,  # 使用指定的单一设备
             trust_remote_code=True,
             low_cpu_mem_usage=True
         )
@@ -285,7 +298,9 @@ def evaluate_model(model, processor, test_data, config, model_name="模型", log
                 max_length=2048
             )
 
-            inputs = {k: v.to(model.device) for k, v in inputs.items()}
+            # 确保所有输入张量都在同一设备上
+            device = next(model.parameters()).device  # 获取模型参数所在的设备
+            inputs = {k: v.to(device) for k, v in inputs.items()}
 
             # 生成预测
             with torch.no_grad():
@@ -299,6 +314,9 @@ def evaluate_model(model, processor, test_data, config, model_name="模型", log
 
             # 解码生成结果
             generated_ids_trimmed = generated_ids[:, inputs['input_ids'].shape[1]:]
+
+            # 确保解码在CPU上进行以避免设备不匹配
+            generated_ids_trimmed = generated_ids_trimmed.cpu()
             predicted_answer = processor.tokenizer.decode(
                 generated_ids_trimmed[0],
                 skip_special_tokens=True
