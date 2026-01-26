@@ -23,7 +23,7 @@ def load_config(config_path="./config/multi_gpu_config.yaml"):
 
 
 def prepare_dataset(config):
-    """准备训练数据集"""
+    """准备训练数据集 - 适配Llama Factory格式，包含图像信息"""
     # 读取转换后的数据
     with open(config['dataset_path'], 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -31,25 +31,41 @@ def prepare_dataset(config):
     # 转换为HuggingFace Dataset格式
     formatted_data = []
     for item in data:
-        # 处理对话数据
-        conversations = item.get('conversations', [])
-        if not conversations:
-            continue
+        # 处理Llama Factory格式数据
+        instruction = item.get('instruction', '')
+        input_text = item.get('input', '')
+        output = item.get('output', {})
+        images = item.get('images', [])  # 获取图像路径
 
-        # 构建提示和响应
-        conversation_str = ""
-        for conv in conversations:
-            role = conv.get('role', '')
-            content = conv.get('content', '')
+        # 构建完整的对话
+        # 将instruction和input组合成用户输入
+        user_input = instruction
+        if input_text:
+            user_input += "\n\n" + input_text
 
-            # 根据角色构建消息
-            if role == 'user':
-                conversation_str += f"<|user|>\n{content}"
-            elif role == 'assistant':
-                conversation_str += f"\n<|assistant|>\n{content}"
+        # 处理输出 - output可能是字典格式
+        if isinstance(output, dict):
+            if 'reasoning' in output and 'action' in output:
+                # 按照JSON格式构建答案
+                assistant_response = json.dumps(output, ensure_ascii=False, indent=2)
+            else:
+                # 如果只有部分字段，尝试构建答案
+                response_parts = []
+                for key, value in output.items():
+                    if isinstance(value, list):
+                        response_parts.append(f"{key}: {str(value)}")
+                    else:
+                        response_parts.append(f"{key}: {value}")
+                assistant_response = "\n".join(response_parts)
+        else:
+            assistant_response = str(output)
+
+        # 构建对话格式
+        conversation_str = f"<|user|>\n{user_input}\n<|assistant|>\n{assistant_response}"
 
         formatted_data.append({
             "text": conversation_str,
+            "images": images  # 保存图像路径信息
         })
 
     # 创建Dataset对象
@@ -58,28 +74,119 @@ def prepare_dataset(config):
 
 
 class DataCollatorForQwen3VL:
-    def __init__(self, processor):
+    def __init__(self, processor, config):
         self.processor = processor
+        self.config = config
 
     def __call__(self, features):
-        # 提取文本
-        texts = [feature['text'] for feature in features]
+        # 提取文本和图像
+        texts = []
+        images_list = []
 
-        # 处理文本 - 确保返回字典而不是嵌套张量
-        inputs = self.processor(
-            text=texts,
-            padding=True,
-            truncation=True,
-            max_length=2048,
-            return_tensors="pt"
-        )
+        for feature in features:
+            texts.append(feature['text'])
+            # 如果有图像路径，加载图像
+            if 'images' in feature and feature['images']:
+                import os
+                from PIL import Image
+                import base64
+                import io
+
+                image_path = feature['images'][0]  # 假设只处理第一个图像
+                if image_path.startswith('data:image'):
+                    # 处理base64图像
+                    base64_str = image_path.split(',')[1]
+                    image_bytes = base64.b64decode(base64_str)
+                    pil_image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+                    images_list.append(pil_image)
+                else:
+                    # 处理本地文件路径
+                    possible_paths = [
+                        image_path,  # 原始路径
+                        os.path.join(os.path.dirname(self.config['dataset_path']), image_path),  # 相对于数据集文件
+                        os.path.join('.', image_path),  # 相对当前目录
+                        os.path.join('..', image_path),  # 上级目录
+                    ]
+
+                    pil_image = None
+                    for img_path in possible_paths:
+                        if os.path.exists(img_path):
+                            pil_image = Image.open(img_path).convert('RGB')
+                            break
+
+                    if pil_image is not None:
+                        images_list.append(pil_image)
+                    else:
+                        # 如果找不到图像，只处理文本
+                        images_list.append(None)
+            else:
+                # 没有图像，只处理文本
+                images_list.append(None)
+
+        # 处理文本和图像 - 根据是否有图像决定处理方式
+        if any(img is not None for img in images_list):
+            # 有图像的情况，使用messages格式
+            processed_inputs_list = []
+            for i, (text, img) in enumerate(zip(texts, images_list)):
+                if img is not None:
+                    # 包含图像的消息格式
+                    messages = [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "image"},
+                                {"type": "text", "text": text.split('\n<|assistant|>\n')[0].replace('<|user|>\n', '')}
+                            ]
+                        }
+                    ]
+
+                    # 应用对话模板
+                    formatted_text = self.processor.apply_chat_template(
+                        messages,
+                        tokenize=False,
+                        add_generation_prompt=False
+                    )
+
+                    # 处理文本和图像
+                    inputs = self.processor(
+                        text=formatted_text,
+                        images=img,
+                        padding=True,
+                        truncation=True,
+                        max_length=2048,
+                        return_tensors="pt"
+                    )
+                else:
+                    # 纯文本处理
+                    inputs = self.processor(
+                        text=text,
+                        padding=True,
+                        truncation=True,
+                        max_length=2048,
+                        return_tensors="pt"
+                    )
+                processed_inputs_list.append(inputs)
+
+            # 合并批次
+            batch = {}
+            for key in processed_inputs_list[0].keys():
+                batch[key] = torch.cat([inputs[key] for inputs in processed_inputs_list], dim=0)
+        else:
+            # 纯文本处理
+            batch = self.processor(
+                text=texts,
+                padding=True,
+                truncation=True,
+                max_length=2048,
+                return_tensors="pt"
+            )
 
         # 不要在collate_fn中处理CUDA设备分配，让Trainer自动处理
         # 避免在DataLoader worker进程中引发CUDA reinitialization错误
 
         # 设置标签
-        inputs['labels'] = inputs['input_ids'].clone()
-        return inputs
+        batch['labels'] = batch['input_ids'].clone()
+        return batch
 
 
 def setup_distributed_training():
@@ -323,31 +430,10 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
         ddp_find_unused_parameters=config['ddp_find_unused_parameters'],
     )
 
-    # 在模型创建之后、训练之前处理DataParallel/DDP问题
-    if n_gpu > 1 and not dist.is_initialized():
-        print(f"检测到 {n_gpu} 个GPU，使用 DataParallel")
-        # 为DataParallel模型添加缺失的方法
-        model = torch.nn.DataParallel(model)
-
-        # 为DataParallel模型添加必要的方法以满足Trainer要求
-        def gradient_checkpointing_enable(**kwargs):
-            model.module.gradient_checkpointing_enable(**kwargs)
-        model.gradient_checkpointing_enable = gradient_checkpointing_enable
-
-        def enable_input_require_grads():
-            model.module.enable_input_require_grads()
-        model.enable_input_require_grads = enable_input_require_grads
-
-        def disable_input_require_grads():
-            model.module.disable_input_require_grads()
-        model.disable_input_require_grads = disable_input_require_grads
-
-        # 只有在LoRA模式下才访问peft模型的方法
-        if config['finetune_method'] == 'lora':
-            model.module.print_trainable_parameters()
-    elif dist.is_initialized():  # 使用分布式数据并行训练
+    # 在模型创建之后、训练之前处理DDP问题
+    if dist.is_initialized():  # 使用分布式数据并行训练
         print(f"初始化分布式训练，world_size: {world_size}, rank: {local_rank}")
-        model = DDP(model, device_ids=[local_rank])
+        model = DDP(model, device_ids=[local_rank], find_unused_parameters=config['ddp_find_unused_parameters'])
 
         # 为DDP模型添加必要的方法以满足Trainer要求
         def gradient_checkpointing_enable(**kwargs):
@@ -362,25 +448,10 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
             model.module.disable_input_require_grads()
         model.disable_input_require_grads = disable_input_require_grads
 
-        # 只有在LoRA模式下才访问peft模型的方法
-        if config['finetune_method'] == 'lora':
-            model.module.print_trainable_parameters()
-    elif dist.is_initialized():  # 使用分布式数据并行训练
-        print(f"初始化分布式训练，world_size: {world_size}, rank: {local_rank}")
-        model = DDP(model, device_ids=[local_rank])
-
-        # 为DDP模型添加必要的方法以满足Trainer要求
-        def gradient_checkpointing_enable(**kwargs):
-            model.module.gradient_checkpointing_enable(**kwargs)
-        model.gradient_checkpointing_enable = gradient_checkpointing_enable
-
-        def enable_input_require_grads():
-            model.module.enable_input_require_grads()
-        model.enable_input_require_grads = enable_input_require_grads
-
-        def disable_input_require_grads():
-            model.module.disable_input_require_grads()
-        model.disable_input_require_grads = disable_input_require_grads
+        # 添加forward方法以支持Trainer
+        def forward(*args, **kwargs):
+            return model.module(*args, **kwargs)
+        model.forward = forward
 
         # 只有在LoRA模式下才访问peft模型的方法
         if config['finetune_method'] == 'lora':
@@ -399,7 +470,7 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        data_collator=DataCollatorForQwen3VL(processor),
+        data_collator=DataCollatorForQwen3VL(processor, config),
         processing_class=processor,
     )
 

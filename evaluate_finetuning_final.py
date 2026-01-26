@@ -43,76 +43,59 @@ def load_config(config_path="./config/evaluation_config.yaml"):
     return config
 
 def load_test_data(config):
-    """加载测试数据集"""
+    """加载测试数据集 - 适配Llama Factory格式"""
     print(f"从 {config['test_dataset_path']} 加载测试数据...")
 
     try:
-        #with open('./vlm_test_dataset.json', 'r', encoding='utf-8') as f:
+        # 尝试加载新的Llama Factory格式数据
         with open(config['test_dataset_path'], 'r', encoding='utf-8') as f:
             raw_data = json.load(f)
     except FileNotFoundError:
-        print("警告: 找不到vlm_test_dataset.json，尝试使用训练数据的最后部分作为测试集...")
-        backup_path = config['test_dataset_path'].replace('.json', '_fixed.json')
+        print("警告: 找不到指定的测试数据集，尝试加载action_data.json...")
         try:
-            with open(backup_path, 'r', encoding='utf-8') as f:
+            with open("./action_data.json", 'r', encoding='utf-8') as f:
                 raw_data = json.load(f)
         except FileNotFoundError:
-            print(f"错误: 找不到备用数据集文件 {backup_path}")
+            print("错误: 找不到action_data.json")
             return []
-        # 使用最后10%作为测试集
-        split_idx = int(0.9 * len(raw_data))
-        raw_data = raw_data[split_idx:]
 
-    # 简单的数据提取 - 从conversations字段中提取问题和答案
+    # 处理Llama Factory格式的数据
     test_data = []
     for item in raw_data:
-        conversations = item.get('conversations', [])
-        if not conversations or len(conversations) < 2:
-            continue
+        instruction = item.get('instruction', '')
+        input_text = item.get('input', '')
+        output = item.get('output', {})
 
-        # 提取第一个用户问题和对应助手回答
-        user_msg = ""
-        assistant_msg = ""
+        # 构建问题 - 将instruction和input组合
+        question = instruction + "\n\n" + input_text if input_text else instruction
 
-        for conv in conversations:
-            role = conv.get('role', '')
-            content = conv.get('content', [])
+        # 处理输出 - output可能是字典格式
+        if isinstance(output, dict):
+            if 'reasoning' in output and 'action' in output:
+                # 按照JSON格式构建答案
+                answer = json.dumps(output, ensure_ascii=False, indent=2)
+            else:
+                # 如果只有部分字段，尝试构建答案
+                answer_parts = []
+                for key, value in output.items():
+                    if isinstance(value, list):
+                        answer_parts.append(f"{key}: {str(value)}")
+                    else:
+                        answer_parts.append(f"{key}: {value}")
+                answer = "\n".join(answer_parts)
+        else:
+            answer = str(output)
 
-            if role == 'user':
-                if isinstance(content, str):
-                    user_msg = content
-                elif isinstance(content, list):
-                    for content_item in content:
-                        if isinstance(content_item, dict):
-                            content_type = content_item.get('type', '')
-                            if content_type == 'text':
-                                user_msg += content_item.get('text', '')
-                            elif content_type == 'image':
-                                # 添加图像标记，实际图像将在模型推理时处理
-                                user_msg += " [IMAGE]"
-            elif role == 'assistant':
-                if isinstance(content, str):
-                    assistant_msg = content
-                elif isinstance(content, dict):
-                    # assistant的内容可能是字典格式，如{"reasoning": "...", "action": [...]}
-                    if 'reasoning' in content:
-                        assistant_msg += content['reasoning']
-                    if 'action' in content:
-                        assistant_msg += " " + str(content['action'])
-                elif isinstance(content, list):
-                    for content_item in content:
-                        if isinstance(content_item, dict):
-                            content_type = content_item.get('type', '')
-                            if content_type == 'text':
-                                assistant_msg += content_item.get('text', '')
+        # 获取图像路径
+        image_paths = item.get('images', [])
 
-        if user_msg and assistant_msg:
+        if question and answer:
             test_data.append({
                 'id': item.get('id', f'test_{len(test_data)}'),
-                'question': user_msg.strip(),
-                'answer': assistant_msg.strip(),
+                'question': question.strip(),
+                'answer': answer.strip(),
+                'images': image_paths  # 保存图像路径信息
             })
-        # 如果当前项没有有效的问题-答案对，跳过该条目
 
     print(f"加载了 {len(test_data)} 个测试样本")
     return test_data
@@ -275,41 +258,125 @@ def evaluate_model(model, processor, test_data, config, model_name="模型", log
                 continue
 
             # 构建消息格式
-            messages = [
-                {
-                    "role": "user",
-                    "content": question
-                }
-            ]
+            # 检查是否有图像信息
+            import base64
+            from PIL import Image
+            import io
 
-            # 应用对话模板
-            text = processor.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=True
-            )
+            if 'images' in item and item['images']:
+                # 包含图像的消息格式
+                image_path = item['images'][0]  # 假设只处理第一个图像
 
-            # 准备输入
-            inputs = processor(
-                text=text,
-                return_tensors="pt",
-                padding=True,
-                truncation=True,
-                max_length=2048
-            )
+                # 检查图像路径是本地文件还是base64
+                if image_path.startswith('data:image'):
+                    # 处理base64图像
+                    base64_str = image_path.split(',')[1]
+                    image_bytes = base64.b64decode(base64_str)
+                    pil_image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+                else:
+                    # 处理本地文件路径
+                    # 如果是相对路径，尝试在几个可能的位置查找
+                    import os
+                    possible_paths = [
+                        image_path,  # 原始路径
+                        os.path.join(os.path.dirname(config['test_dataset_path']), image_path),  # 相对于数据集文件
+                        os.path.join('.', image_path),  # 相对当前目录
+                        os.path.join('..', image_path),  # 上级目录
+                    ]
+
+                    pil_image = None
+                    for img_path in possible_paths:
+                        if os.path.exists(img_path):
+                            pil_image = Image.open(img_path).convert('RGB')
+                            break
+
+                    if pil_image is None:
+                        print(f"警告: 无法找到图像文件 {image_path}")
+                        # 如果找不到图像，按纯文本处理
+                        messages = [
+                            {
+                                "role": "user",
+                                "content": question
+                            }
+                        ]
+
+                        # 应用对话模板
+                        text = processor.apply_chat_template(
+                            messages,
+                            tokenize=False,
+                            add_generation_prompt=True
+                        )
+
+                        # 准备输入
+                        inputs = processor(
+                            text=text,
+                            return_tensors="pt",
+                            padding=True,
+                            truncation=True,
+                            max_length=2048
+                        )
+                    else:
+                        # 使用messages格式，包含图像标记，然后应用模板
+                        messages = [
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "image"},
+                                    {"type": "text", "text": question}
+                                ]
+                            }
+                        ]
+
+                        # 应用对话模板
+                        text = processor.apply_chat_template(
+                            messages,
+                            tokenize=False,
+                            add_generation_prompt=True
+                        )
+
+                        # 使用processor处理文本和图像
+                        inputs = processor(
+                            text=text,
+                            images=[pil_image],
+                            return_tensors="pt"
+                        )
+            else:
+                # 纯文本消息格式
+                messages = [
+                    {
+                        "role": "user",
+                        "content": question
+                    }
+                ]
+
+                # 应用对话模板
+                text = processor.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True
+                )
+
+                # 准备输入
+                inputs = processor(
+                    text=text,
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                    max_length=2048
+                )
 
             # 确保所有输入张量都在同一设备上
             device = next(model.parameters()).device  # 获取模型参数所在的设备
             inputs = {k: v.to(device) for k, v in inputs.items()}
 
+            # 设置生成配置
+            model.generation_config.max_new_tokens = config.get('max_tokens', 256)
+            model.generation_config.pad_token_id = processor.tokenizer.eos_token_id
+
             # 生成预测
             with torch.no_grad():
                 generated_ids = model.generate(
-                    **inputs,
-                    max_new_tokens=config.get('max_tokens', 256),
-                    temperature=config.get('temperature', 0.1),
-                    do_sample=False,
-                    pad_token_id=processor.tokenizer.eos_token_id
+                    **inputs
                 )
 
             # 解码生成结果
