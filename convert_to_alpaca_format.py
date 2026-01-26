@@ -98,7 +98,7 @@ def convert_dataset(input_file, output_dir):
                             
                             # 保存图片
                             if save_base64_image(base64_img, img_path):
-                                images_list.append(f"./data/images/{img_filename}")
+                                images_list.append(f"./data/vlm_finetune_dataset_fixed/images/{img_filename}")
                                 text_parts.append("<image>")  # 添加图片占位符
                     instruction = "".join(text_parts)
                 else:
