@@ -1,9 +1,9 @@
    - 单卡训练：python qwen3vl_finetune_proper.py config/single_gpu_config_full.yaml
    python qwen3vl_finetune_proper.py config/single_gpu_config.yaml
    - 多卡训练：torchrun --nproc_per_node=2 qwen3vl_finetune_proper_multi_gpu.py --config config/multi_gpu_config.yaml
-    torchrun --nproc_per_node=2 python qwen3vl_finetune_proper_multi_gpu.py --config config/multi_gpu_config.yaml
-   - 评估脚本：torchrun --nproc_per_node=2  python evaluate_finetuning_final.py config/evaluation_config.yaml
-    - 评估脚本：torchrun --nproc_per_node=2  python evaluate_finetuning_final.py config/evaluation_config_full.yaml
+    torchrun --nproc_per_node=2 python qwen3vl_finetune_proper_multi_gpu.py --config config/multi_gpu_config_full.yaml
+   - 评估脚本：python evaluate_finetuning_final.py config/evaluation_config.yaml
+    - 评估脚本：python evaluate_finetuning_final.py config/evaluation_config_full.yaml
 # Qwen3-VL-2B-Instruct 微调项目完整指南
 python qwen3vl_finetune_proper_multi_gpu.py --config config/multi_gpu_config8b.yaml
 ## 下载模型
