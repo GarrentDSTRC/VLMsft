@@ -1,0 +1,1070 @@
+[
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "缓慢向前移动，向中心那株高大的深色珊瑚丛探索，注意保持与底部珊瑚的距离。",
+        "output": {
+            "reasoning": "目标是中心位置的高大深色珊瑚丛。当前视野中，该目标位于正前方。底部布满了各种绿色珊瑚，为了避免碰撞并保持安全距离，机器人需要先微调高度，然后缓慢向前推进以接近目标进行探索。",
+            "action": [
+                "Ascend slightly",
+                "Go straight slowly",
+                "Approach the dark coral",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0001.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速，向正前方那个巨大的深色柱状物靠近，注意避开两侧的珊瑚丛。",
+        "output": {
+            "reasoning": "图像中心偏右位置有一个巨大的深色柱状物，这是目标物体。两侧分布着不同颜色的珊瑚丛（左侧为深绿色，右侧为浅黄色分支状）。为了安全靠近目标，机器人需要保持在中央航道，匀速前进，并根据目标位置微调方向，同时确保与两侧珊瑚保持安全距离。",
+            "action": [
+                "Maintain constant speed",
+                "Go straight",
+                "Slightly adjust heading to the right",
+                "Keep distance from corals on both sides",
+                "Approach the dark columnar object",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0002.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向左前方那个漂浮的探测器靠近，注意避开左侧的尖刺状珊瑚，保持匀速前进。",
+        "output": {
+            "reasoning": "漂浮探测器位于图像左上方，左侧中景处有明显的尖刺状珊瑚。为了安全接近探测器，机器人需要先向左前方调整航向，在绕过珊瑚障碍的同时保持匀速前进，最后接近目标。",
+            "action": [
+                "Turn slightly left",
+                "Move forward at steady speed",
+                "Adjust heading to avoid spiky coral on the left",
+                "Approach the floating detector",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0003.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前穿过这些圆柱状物体，向光亮处探索，保持匀速并注意避开底部的障碍物。",
+        "output": {
+            "reasoning": "当前视野中有多个绿色的圆柱状结构分布在前方，上方有明亮的光源。为了执行指令，机器人需要对准圆柱体之间的缝隙前进，同时适当提升高度以向光亮处移动并避开底部的障碍物，保持平稳的航行速度。",
+            "action": [
+                "Go straight",
+                "Navigate through the gap between cylinders",
+                "Ascend slightly towards the light",
+                "Maintain constant speed",
+                "Monitor and avoid bottom obstacles"
+            ]
+        },
+        "images": [
+            "./data/images/0004.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前匀速靠近中央的石柱，注意避开地面的碎石。",
+        "output": {
+            "reasoning": "中央石柱位于视野正前方，路径地面散落着碎石。机器人需要保持匀速直线前进，同时在行进过程中注意避开地面的障碍物，最终靠近目标石柱。",
+            "action": [
+                "Go straight",
+                "Maintain constant speed",
+                "Avoid ground debris",
+                "Approach the central pillar",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0005.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前匀速航行，绕过左侧的绿色沉车，向右前方的石柱靠近并进行近距离探测。",
+        "output": {
+            "reasoning": "图像中左侧有一辆明显的绿色沉车，右前方背景中矗立着一根石柱。根据指令，机器人需要先向前航行，在保持安全距离的情况下绕过左侧的沉车，随后调整航向指向右前方的石柱，最终靠近石柱进行探测任务。",
+            "action": [
+                "Go straight",
+                "Turn right slightly to bypass the car",
+                "Go straight towards the stone pillar",
+                "Approach the stone pillar",
+                "Stop and perform detection"
+            ]
+        },
+        "images": [
+            "./data/images/0006.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速向前航行，注意避开右侧高耸的珊瑚礁，向深处探索。",
+        "output": {
+            "reasoning": "当前视野中，左侧有一艘潜艇正在航行，右侧有一座较高且显眼的白色珊瑚礁。前方海域视线开阔并逐渐变深。为了执行指令，机器人需要保持匀速航行，并与右侧的珊瑚礁保持安全距离，持续向深水区推进。",
+            "action": [
+                "Maintain constant speed",
+                "Go straight",
+                "Keep distance from the right coral reef",
+                "Move forward into deep water"
+            ]
+        },
+        "images": [
+            "./data/images/0007.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "一直向前穿过前方的洞口，注意避开底部的岩石，保持匀速前进。",
+        "output": {
+            "reasoning": "图像显示前方有一个宽阔的水下洞口，阳光从上方射入。底部散布着大小不一的岩石。为了安全穿过，机器人需要调整高度以避开底部的障碍物，并对准洞口中心保持匀速直线航行。",
+            "action": [
+                "Adjust depth to clear bottom rocks",
+                "Go straight towards the center of the opening",
+                "Maintain steady speed",
+                "Pass through the opening"
+            ]
+        },
+        "images": [
+            "./data/images/0008.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速向前，靠近前方的绿色舱体并观察其窗口，同时注意右侧悬挂的红色浮标。",
+        "output": {
+            "reasoning": "图像显示绿色舱体位于前方，其侧面分布有多个观察窗。红色浮标悬挂在右侧较远位置。为了执行指令，机器人需要保持匀速前进，并向右微调方向以对准舱体窗口，同时在航行路径中避开右侧的浮标障碍。",
+            "action": [
+                "Go straight",
+                "Slightly turn right",
+                "Approach the green cabin windows",
+                "Maintain distance from the red buoy",
+                "Stop and observe"
+            ]
+        },
+        "images": [
+            "./data/images/0009.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "缓慢向前靠近橙色圆柱体开口处进行详细探测，注意保持与底部的安全距离。",
+        "output": {
+            "reasoning": "图像中橙色圆柱体位于前方，其开口正对右前方。为了执行详细探测任务，机器人需要先调整航向对准开口，随后在保持离底高度的情况下缓慢接近，最后在开口处悬停。",
+            "action": [
+                "Turn slightly right to align with the opening",
+                "Maintain altitude above the seabed",
+                "Move forward slowly",
+                "Approach the cylinder opening",
+                "Stop and hover"
+            ]
+        },
+        "images": [
+            "./data/images/0010.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "继续向前匀速航行，穿过前方的珊瑚群，注意观察上方和右侧的岩石障碍。",
+        "output": {
+            "reasoning": "机器人当前位于珊瑚礁上方，上方和右侧存在大型岩石结构。为了安全穿过珊瑚群，机器人需要保持稳定的航向和深度，避开上方和右侧的障碍物，同时确保不触碰下方的珊瑚。",
+            "action": [
+                "Maintain depth",
+                "Go straight",
+                "Monitor right side obstacles",
+                "Monitor top obstacles",
+                "Pass through coral area"
+            ]
+        },
+        "images": [
+            "./data/images/0011.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前并向右侧移动，绕过前方的珊瑚礁，靠近观察那个大型圆柱体目标，注意保持匀速并与障碍物保持安全距离。",
+        "output": {
+            "reasoning": "图像中前方和左侧分布有珊瑚礁，大型圆柱体目标位于右前方。机器人需要先向前移动，然后向右转向以避开左侧的珊瑚礁群，随后直线靠近圆柱体目标，并在安全距离内停止以进行观察。",
+            "action": [
+                "Go straight",
+                "Turn right",
+                "Go straight",
+                "Approach the cylindrical target",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0012.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速，沿着光束照亮的中心区域向前探索，注意观察两侧岩壁的距离。",
+        "output": {
+            "reasoning": "图像显示一个由两侧岩壁构成的狭窄水下通道，中心区域有上方射入的明亮光束。为了执行指令，机器人需要锁定光束所在的中心路径，保持匀速直线行驶，并时刻感知左右两侧岩壁的边界以维持安全间距。",
+            "action": [
+                "Go straight",
+                "Maintain constant speed",
+                "Stay centered in the light beam",
+                "Monitor distance to side walls",
+                "Explore forward"
+            ]
+        },
+        "images": [
+            "./data/images/0013.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速，从两块大礁石之间穿过，向前方垂下的标记物靠近。",
+        "output": {
+            "reasoning": "图像显示左右两侧各有一块巨大的礁石，中间形成了一个明显的通道。前方上方有一个垂下的白色标记物。为了执行指令，机器人需要调整航向对准两礁石间的缝隙，保持稳定速度穿过，然后向标记物靠拢。",
+            "action": [
+                "Align with the gap between the reefs",
+                "Go straight at constant speed",
+                "Pass between the two large reefs",
+                "Turn slightly right towards the hanging marker",
+                "Approach the marker",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0014.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速，缓慢向前靠近中心的发光结构，注意避开左侧和上方的粗大线缆。",
+        "output": {
+            "reasoning": "图像中心有一个明显的发光结构作为目标。左侧和上方分布着粗大的黄蓝相间的线缆，构成了主要的障碍区域。为了安全靠近目标，机器人需要保持在中心路径，缓慢向前推进，同时实时监控与左侧及上方线缆的距离，确保不发生碰撞。",
+            "action": [
+                "Move forward slowly",
+                "Maintain central alignment",
+                "Keep distance from left cables",
+                "Keep distance from top cables",
+                "Approach the glowing structure",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0015.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "沿着蓝色波纹管道向上方水面移动，注意避开左侧的黄色缆绳网，保持匀速前进。",
+        "output": {
+            "reasoning": "图像中心有一条明显的蓝色波纹管道延伸至水面，左侧分布着大面积的黄色缆绳网。为了安全到达水面，机器人需要锁定蓝色管道作为路径参考，并向右侧微调以远离左侧的缆绳网，随后沿着管道斜向上方匀速推进。",
+            "action": [
+                "Align with the blue corrugated pipe",
+                "Shift slightly to the right to avoid the yellow net",
+                "Move forward and upward along the pipe",
+                "Maintain steady speed",
+                "Ascend towards the surface"
+            ]
+        },
+        "images": [
+            "./data/images/0016.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向右前方缓慢移动，靠近黄色圆圈标记的海底区域进行探测，注意保持匀速并避开周围的珊瑚礁。",
+        "output": {
+            "reasoning": "目标探测区域位于图像右前方的海底，由黄色圆圈标出。周围分布有珊瑚礁，需要规划一条向右前方的路径并避开障碍。机器人需要先向右调整航向，然后缓慢匀速前进，最终停在目标区域上方进行探测。",
+            "action": [
+                "Turn right",
+                "Go straight slowly",
+                "Keep distance from corals",
+                "Approach the yellow circle",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0017.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速向前方的光源处航行，注意避开两侧的珊瑚礁群。",
+        "output": {
+            "reasoning": "图像显示正上方有强烈的光源，而左右两侧分布着密集的珊瑚礁群。机器人目前处于两者之间的开阔水域。为了执行指令，机器人需要保持稳定的速度，沿着中心路径向光源方向航行，同时实时监测与两侧珊瑚礁的距离以确保安全避障。",
+            "action": [
+                "Maintain steady speed",
+                "Go straight",
+                "Keep center between reefs",
+                "Approach light source",
+                "Monitor obstacles"
+            ]
+        },
+        "images": [
+            "./data/images/0018.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "绕过正前方的大石柱，向右侧后方那群较小的遗迹建筑群匀速前进，注意观察底部沙地的起伏。",
+        "output": {
+            "reasoning": "正前方有一个巨大的石柱阻挡路径，目标遗迹群位于石柱右后方。需要先向右侧移动绕过石柱，然后调整航向朝向遗迹群，并保持匀速前进，同时监控沙地高度以防碰撞。",
+            "action": [
+                "Turn right",
+                "Go straight to bypass the pillar",
+                "Turn right towards the ruins",
+                "Move forward steadily",
+                "Monitor seabed depth",
+                "Approach the ruins"
+            ]
+        },
+        "images": [
+            "./data/images/0019.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "绕过左侧沉没的汽车，向右前方那个圆柱形建筑靠近，注意保持匀速并观察底部沙地的变化。",
+        "output": {
+            "reasoning": "图像左侧有一辆沉没的汽车作为主要障碍物，目标圆柱形建筑位于右前方。规划路径为先向右侧转向以避开左侧汽车，随后直线向目标建筑靠近，同时在移动过程中保持恒定速度并监测底部沙地的纹理变化。",
+            "action": [
+                "Turn right",
+                "Go straight",
+                "Maintain constant speed",
+                "Monitor seabed changes",
+                "Approach the cylindrical building",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0020.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "一直向前穿过面前的珊瑚与岩石缝隙，保持匀速并注意近处的地形起伏。",
+        "output": {
+            "reasoning": "图像显示正前方有一个由左侧珊瑚和右侧岩石壁构成的狭窄缝隙。光线从上方射入，路径清晰。为了安全穿过，机器人需要保持在缝隙中央，并根据底部地形起伏微调高度，同时保持匀速前进。",
+            "action": [
+                "Go straight",
+                "Stay centered",
+                "Adjust depth for terrain",
+                "Maintain speed",
+                "Pass through"
+            ]
+        },
+        "images": [
+            "./data/images/0021.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "一直向前穿过面前的岩石通道，朝着远处的亮光处前进，注意避开底部的礁石并保持匀速。",
+        "output": {
+            "reasoning": "当前环境为一个半封闭的水下岩石通道，正前方远处有明显的亮光出口。路径底部散布着不规则的礁石。为了安全完成指令，机器人需要保持航向对准亮光中心，同时适当控制高度以避开底部的礁石障碍，并维持稳定的推进速度。",
+            "action": [
+                "Go straight",
+                "Maintain altitude to avoid bottom reefs",
+                "Head towards the light source",
+                "Maintain constant speed",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0022.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速，从右侧绕过面前的大型红色浮标，向深处那个较小的目标靠近，注意观察底部沙地的起伏。",
+        "output": {
+            "reasoning": "图像中心偏左位置有一个大型红色浮标，遮挡了前进路径。根据指令，需要从右侧绕过该障碍物。远方右侧可见一个较小的同类目标。机器人需要先向右转向避开大浮标，随后保持匀速向深处目标行进，同时需实时监测下方沙地的起伏以维持安全高度。",
+            "action": [
+                "Maintain constant speed",
+                "Turn right",
+                "Go straight to bypass the large buoy",
+                "Turn left slightly to align with the distant target",
+                "Go straight towards the small target",
+                "Monitor sandy bottom terrain",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0023.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前方悬挂的橙色网状结构靠近进行观察，注意保持匀速并与缆绳保持安全距离。",
+        "output": {
+            "reasoning": "图像中心显示一个悬挂的橙色网状篮筐结构，上方有连接缆绳。目标位于正前方。为了安全观察，机器人需要缓慢直线前进，同时避开上方的缆绳路径，在合适距离停下。",
+            "action": [
+                "Go straight",
+                "Maintain steady speed",
+                "Keep distance from cables",
+                "Stop near target"
+            ]
+        },
+        "images": [
+            "./data/images/0024.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速，向前方发光的绿色石柱靠近，并注意避开左侧的石壁。",
+        "output": {
+            "reasoning": "发光的绿色石柱位于前方中心偏右位置，左侧有大型石壁结构。为了安全靠近目标并避开左侧障碍，机器人需要保持匀速前进，并适度向右修正航向以拉开与左侧石壁的距离。",
+            "action": [
+                "Maintain constant speed",
+                "Go straight",
+                "Slightly turn right to avoid left wall",
+                "Approach the green pillar",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0025.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速向前航行，穿过左侧珊瑚群与右侧石柱之间的通道，注意观察石柱表面的纹理特征。",
+        "output": {
+            "reasoning": "图像中心显示出一条清晰的通道，左侧是大型珊瑚结构，右侧是一根具有独特纹理的石柱。为了执行指令，机器人需要对准通道中心，保持稳定速度向前航行，并在经过石柱时保持观察视角以记录其表面纹理。",
+            "action": [
+                "Align with the channel center",
+                "Go straight at constant speed",
+                "Pass between the left coral and right pillar",
+                "Observe the texture of the stone pillar",
+                "Maintain forward navigation"
+            ]
+        },
+        "images": [
+            "./data/images/0026.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前靠近并检查底部的绿色圆柱形设备，注意保持匀速并避开右侧的岩石区域。",
+        "output": {
+            "reasoning": "图像前景底部有一个显著的绿色圆柱形设备，即为目标检查物。右侧区域分布着多块黑色孔洞状岩石，构成障碍。为了安全靠近目标，机器人需要保持平稳速度向前推进，同时在路径上稍微偏左以确保与右侧岩石保持安全距离，最后在设备上方悬停进行检查。",
+            "action": [
+                "Go straight",
+                "Slightly steer left to avoid right-side rocks",
+                "Maintain steady speed",
+                "Approach the green cylindrical device",
+                "Stop and hover for inspection"
+            ]
+        },
+        "images": [
+            "./data/images/0027.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前行驶，绕过右侧巨大的珊瑚礁，向远处发光的绿色目标靠近，注意保持平稳速度。",
+        "output": {
+            "reasoning": "图像显示右侧有一个巨大的多孔珊瑚礁，远处左前方有一个发绿光的目标。为了到达目标并避开右侧障碍，机器人需要先向前行驶，然后向左微调以绕过珊瑚礁，最后直行接近发光目标。",
+            "action": [
+                "Go straight",
+                "Turn slightly left to bypass the reef",
+                "Go straight towards the green light",
+                "Approach target",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0028.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速向前航行，避开左侧的大型珊瑚礁，向中央的石柱靠近并进行环绕探测。",
+        "output": {
+            "reasoning": "图像中心有一个显著的石柱目标，左侧底部有大型珊瑚礁。机器人需要保持匀速前进，并向右微调以避开左侧障碍物，随后接近石柱并执行环绕动作。",
+            "action": [
+                "Go straight",
+                "Slightly turn right",
+                "Approach the central pillar",
+                "Circle the pillar",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0029.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前靠近正前方的黑色石柱，注意避开底部的珊瑚礁，保持平稳航行。",
+        "output": {
+            "reasoning": "黑色石柱位于正前方，底部周围分布有明显的珊瑚礁。为了安全靠近，机器人需要保持稳定的航行高度以避开底部的障碍物，然后直线向前航行，并在接近石柱时减速停止。",
+            "action": [
+                "Go straight",
+                "Maintain safe altitude",
+                "Approach the pillar",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0030.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前靠近面前巨大的球形珊瑚并观察其内部，注意保持匀速，避免发生碰撞。",
+        "output": {
+            "reasoning": "视野正前方是一个巨大的球形珊瑚，其中心位置有一个明显的孔洞。为了执行观察内部的任务，机器人需要保持匀速直线前进，逐渐靠近该孔洞，并确保在发生碰撞前停止。",
+            "action": [
+                "Go straight",
+                "Maintain constant speed",
+                "Approach the opening",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0031.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速，向左前方缓慢移动，注意避开正前方巨大的珊瑚礁结构。",
+        "output": {
+            "reasoning": "图像显示正前方有一个巨大的珊瑚礁结构，为了避开它并向左前方移动，机器人需要先向左转弯以调整航向，避开障碍物路径，然后保持匀速直线行驶。左侧区域相对开阔，适合安全通行。",
+            "action": [
+                "Turn left",
+                "Go straight",
+                "Maintain constant speed",
+                "Keep distance from reef"
+            ]
+        },
+        "images": [
+            "./data/images/0032.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向右前方缓慢移动，绕过左侧的绿色大型设备，注意观察底部的光影变化。",
+        "output": {
+            "reasoning": "图像左侧占据了大量的绿色大型设备，为了绕过它并向右前方移动，机器人需要先向右调整航向，避开左侧障碍物，随后缓慢前进。同时，底部光影交错，需要保持低速以进行细致观察。",
+            "action": [
+                "Turn right",
+                "Move forward slowly",
+                "Keep distance from green equipment",
+                "Observe seabed light patterns",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0033.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "沿着右侧的管道结构匀速向前探索，注意避开左侧的礁石区域。",
+        "output": {
+            "reasoning": "图像显示右侧有一条明显的管道结构，左侧是崎岖的礁石。为了执行指令，机器人需要保持在管道左侧并与其平行，同时确保与左侧礁石保持安全距离，匀速向前推进。",
+            "action": [
+                "Align with the pipe",
+                "Maintain distance from left reef",
+                "Go straight at constant speed",
+                "Monitor surroundings"
+            ]
+        },
+        "images": [
+            "./data/images/0034.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速向前飞行，穿过前方的缆绳区域，注意避开左侧缠绕的黄色线缆。",
+        "output": {
+            "reasoning": "当前视野中，左侧下方有明显的黄色缠绕线缆，前方有横向的网状结构。为了安全穿过，需要保持稳定的前进速度，并微调航向偏向右侧，以避开左侧的障碍物，确保在缆绳区域中心穿行。",
+            "action": [
+                "Maintain constant speed",
+                "Slightly turn right",
+                "Go straight",
+                "Pass through the cable area",
+                "Keep monitoring left obstacles"
+            ]
+        },
+        "images": [
+            "./data/images/0035.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向右前方缓慢移动，穿过缆绳之间的空隙，注意避开左侧的网状障碍物，保持匀速航行。",
+        "output": {
+            "reasoning": "图像显示左侧存在明显的网状障碍物，右侧有连接潜水器的缆绳。为了向右前方移动并穿过空隙，机器人需要先向右微调航向，避开左侧网状物，然后缓慢匀速地从缆绳之间的空间穿过。",
+            "action": [
+                "Turn right",
+                "Go straight slowly",
+                "Navigate through the gap between cables",
+                "Maintain constant speed"
+            ]
+        },
+        "images": [
+            "./data/images/0036.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速向前，抵近观察前方的青色垂直结构，注意避开底部的线缆并留意左侧潜水员的位置。",
+        "output": {
+            "reasoning": "图像中心是一个显著的青色垂直结构，这是主要的观察目标。底部海床上布有线缆，机器人需要保持一定高度以防挂蹭。左侧有一名潜水员，在前进过程中需持续监测其位置以确保安全距离。路径前方无明显障碍，将采取匀速直线前进并最终抵近观察的策略。",
+            "action": [
+                "Maintain altitude to avoid cables",
+                "Go straight at constant speed",
+                "Monitor diver on the left",
+                "Slow down",
+                "Approach cyan structure",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0037.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速，从蓝色管道和右侧潜航器之间向前穿过，注意避开左侧的石柱。",
+        "output": {
+            "reasoning": "图像显示蓝色管道位于左侧，大型潜航器位于右侧，左侧边缘有石柱。目标路径位于管道和潜航器之间的缝隙。机器人需要调整航向对准该间隙，保持匀速前进，并确保与左侧石柱保持安全距离。",
+            "action": [
+                "Adjust heading to the gap",
+                "Maintain constant speed",
+                "Go straight through the gap",
+                "Keep away from the left pillar",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0038.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速，向右前方绕过中心的大型绿色环状珊瑚，注意避开近处的紫色斑点珊瑚。",
+        "output": {
+            "reasoning": "图像中心是一个大型绿色环状珊瑚，右下角近处有一个紫色斑点珊瑚。为了实现向右前方绕过中心目标并避开近处障碍，机器人需要保持匀速，先向右微调航向以避开右下方的紫色珊瑚，随后向右前方推进以绕过中心的大型珊瑚。",
+            "action": [
+                "Maintain constant speed",
+                "Turn slightly right",
+                "Go straight to clear the purple spotted coral",
+                "Adjust heading to the right front",
+                "Bypass the green ring coral",
+                "Continue forward"
+            ]
+        },
+        "images": [
+            "./data/images/0039.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向正前方的大型珊瑚靠近，保持匀速并注意观察其表面的细节。",
+        "output": {
+            "reasoning": "大型珊瑚位于机器人正前方，视野清晰且无明显障碍物。为了观察细节，机器人需要匀速直线前进，并在接近目标时减速以进行近距离观察。",
+            "action": [
+                "Go straight",
+                "Maintain constant speed",
+                "Approach the coral",
+                "Slow down",
+                "Stop and observe"
+            ]
+        },
+        "images": [
+            "./data/images/0040.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前穿过紫色珊瑚和右侧石柱之间的空隙，保持匀速并注意观察周围环境。",
+        "output": {
+            "reasoning": "图像中，前方中心偏左位置有一个紫色的圆形珊瑚，右侧是一个高大的深色石柱。两者之间存在明显的通行空间。机器人需要调整航向对准该空隙，随后保持稳定速度直线穿过，并在移动过程中持续监测周围环境。",
+            "action": [
+                "Align with the gap",
+                "Go straight",
+                "Maintain constant speed",
+                "Monitor surroundings",
+                "Pass through the gap"
+            ]
+        },
+        "images": [
+            "./data/images/0041.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向正前方那个红白相间的浮标靠近，保持匀速，注意避开两侧的大型岩石。",
+        "output": {
+            "reasoning": "目标红白相间的浮标位于正前方海底，两侧分布有大型岩石。路径相对开阔，机器人需要保持在中央航道匀速前进，以避开两侧障碍物并接近目标。",
+            "action": [
+                "Go straight",
+                "Maintain constant speed",
+                "Keep center between rocks",
+                "Approach the buoy",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0042.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前方的大石柱缓慢靠近，保持匀速，同时注意观察光影下的地面障碍物。",
+        "output": {
+            "reasoning": "图像中心偏右位置有一根巨大的石柱，光线从上方射入形成强烈的光影效果。地面散落着一些小型石块障碍物。为了安全靠近石柱，需要先微调方向对准目标，然后以恒定低速前进，并持续监测地面障碍物以防碰撞。",
+            "action": [
+                "Turn slightly right to align with the pillar",
+                "Move forward at a slow and constant speed",
+                "Monitor ground obstacles in the light and shadow",
+                "Adjust path to avoid small rocks",
+                "Approach the base of the pillar",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0043.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "一直向前靠近中央的巨大柱子，保持匀速并注意观察光影下的环境变化。",
+        "output": {
+            "reasoning": "中央巨大的柱子位于视野正前方，路径清晰且光影效果明显。机器人需要保持当前航向，匀速向前推进以接近目标，同时监测周围环境。",
+            "action": [
+                "Go straight",
+                "Maintain steady speed",
+                "Approach the central pillar",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0044.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前靠近大型条纹潜航器进行近距离观察，保持匀速并注意避开底部的珊瑚礁。",
+        "output": {
+            "reasoning": "大型条纹潜航器位于正前方，占据了视野的主要部分。底部有明显的珊瑚礁分布。为了安全地进行近距离观察，机器人需要保持当前深度以避开底部的障碍物，并稳步向前推进直到接近目标。",
+            "action": [
+                "Go straight",
+                "Maintain depth",
+                "Approach the submersible",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0045.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速向前，靠近正前方的深色立柱，注意避开两侧的珊瑚礁。",
+        "output": {
+            "reasoning": "正前方有一个深色立柱，左右两侧分布着珊瑚礁。路径中央相对开阔，机器人需要保持当前航向，匀速向前移动以靠近立柱，同时通过保持居中来避开两侧的珊瑚。",
+            "action": [
+                "Maintain heading",
+                "Go straight at constant speed",
+                "Approach the dark pillar",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0046.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速，沿着岩壁间的狭窄通道继续向前航行，注意避开两侧的突出物并跟随前方的潜水员。",
+        "output": {
+            "reasoning": "当前机器人处于两面岩壁构成的狭窄通道中，前方有两名潜水员正在行进。光线从上方射入，路径清晰但空间受限。需要保持航向居中以避开两侧岩壁的突出部分，并维持恒定速度跟随前方潜水员。",
+            "action": [
+                "Maintain constant speed",
+                "Go straight",
+                "Adjust to stay centered",
+                "Follow the divers",
+                "Avoid side protrusions"
+            ]
+        },
+        "images": [
+            "./data/images/0047.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "沿着左侧的弧形结构和右侧的珊瑚群之间的通道稳步前行，注意保持匀速并观察前方深处的环境变化。",
+        "output": {
+            "reasoning": "图像显示左侧有一个巨大的弧形人工结构，右侧分布着若干珊瑚礁石，中间形成了一条清晰的沙质通道。为了执行指令，机器人需要对准通道中心，保持稳定速度向前推进，并持续监测前方深水区域的视觉变化。",
+            "action": [
+                "Align to the center of the channel",
+                "Go straight steadily",
+                "Maintain constant speed",
+                "Monitor the environment ahead"
+            ]
+        },
+        "images": [
+            "./data/images/0048.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前匀速靠近前方的蓝色柱状结构，注意观察周围光影变化并避开两侧的珊瑚礁。",
+        "output": {
+            "reasoning": "蓝色柱状结构位于视野正前方，左右两侧分布有珊瑚礁。为了安全靠近目标，机器人需要保持直线行驶，确保与两侧珊瑚礁保持安全距离，并根据光影变化调整观察策略。",
+            "action": [
+                "Go straight at constant speed",
+                "Maintain center path between corals",
+                "Approach the blue pillar",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0049.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前穿过珊瑚群，保持匀速并注意避开左侧巨大的扇形珊瑚。",
+        "output": {
+            "reasoning": "图像显示左侧有一个巨大的扇形珊瑚，前方是珊瑚群之间的通道。为了安全穿过并避开左侧障碍物，机器人需要先微调方向向右，然后保持匀速直线前进。",
+            "action": [
+                "Go straight",
+                "Turn right slightly",
+                "Maintain constant speed",
+                "Go straight through the gap",
+                "Monitor left obstacle"
+            ]
+        },
+        "images": [
+            "./data/images/0050.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向右前方绕过底部的珊瑚群，向那艘大型潜航器靠近，注意保持匀速并观察周边环境。",
+        "output": {
+            "reasoning": "大型潜航器位于图像中心偏右位置，底部前景有密集的珊瑚群作为障碍物。为了安全靠近目标，机器人需要先向右前方调整航向以绕过珊瑚群，随后直线接近潜航器，并在过程中保持匀速和环境监测。",
+            "action": [
+                "Turn right",
+                "Go straight to bypass the coral groups",
+                "Maintain constant speed",
+                "Approach the large submersible",
+                "Observe surroundings",
+                "Stop near target"
+            ]
+        },
+        "images": [
+            "./data/images/0051.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "沿着当前轨迹继续向斜上方浮动，穿过前方的深水区，保持匀速并注意避开右侧的岩石结构。",
+        "output": {
+            "reasoning": "机器人当前正处于斜向上浮的轨迹中，前方是开阔的深水区。右侧可见明显的岩石结构，需要保持当前航向并略微偏左以确保安全间距，同时维持恒定动力输出以实现匀速浮升。",
+            "action": [
+                "Maintain current diagonal upward trajectory",
+                "Keep constant speed",
+                "Monitor distance to the rock structure on the right",
+                "Slightly adjust heading to the left for safety clearance",
+                "Continue floating upwards through the deep water area"
+            ]
+        },
+        "images": [
+            "./data/images/0052.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前方青色皮卡车靠近，保持匀速并注意避开左侧的巨大石柱。",
+        "output": {
+            "reasoning": "图像中青色皮卡车位于前方中右侧，左侧有一根巨大的石柱。为了安全靠近目标，机器人需要先微调航向以确保与左侧石柱保持安全距离，随后匀速向前推进，最终停在皮卡车旁。",
+            "action": [
+                "Adjust heading slightly right",
+                "Go straight at steady speed",
+                "Keep distance from left pillar",
+                "Approach the pickup truck",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0053.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速向前，从右侧石柱与左侧圆形遗迹之间的空隙穿过，注意观察沉船附近的细节。",
+        "output": {
+            "reasoning": "图像显示左侧有一个圆形遗迹，右侧有一个高大的石柱，两者之间存在明显的间隙。间隙后方可见一处沉船（或沉没车辆）遗迹。为了执行指令，机器人需要保持航向，从间隙中穿过，并逐渐靠近沉船以进行细节观察。",
+            "action": [
+                "Go straight",
+                "Adjust heading to center",
+                "Pass through the gap",
+                "Approach the shipwreck",
+                "Slow down for observation",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0054.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速向前推进，从前方两块大型礁石中间穿过，注意避开左侧突出的珊瑚结构。",
+        "output": {
+            "reasoning": "图像显示前方左右两侧各有一块大型礁石，中间形成了一个可通行的间隙。左侧近处有明显的珊瑚突出物。为了安全穿过，机器人需要保持匀速，先向右侧微调以避开左侧的珊瑚结构，随后修正航向对准礁石间的缝隙并直行穿过。",
+            "action": [
+                "Go straight",
+                "Turn right to avoid left coral",
+                "Go straight",
+                "Turn left to align with the gap",
+                "Go straight through the gap"
+            ]
+        },
+        "images": [
+            "./data/images/0055.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速，向前靠近中心的大型结构物，注意避开两侧的礁石。",
+        "output": {
+            "reasoning": "图像中心有一个大型潜艇状结构物，两侧分布着黑色礁石。为了安全靠近目标，需要保持航向居中，匀速直线前进，并时刻留意与两侧礁石的距离以防碰撞。",
+            "action": [
+                "Go straight",
+                "Maintain constant speed",
+                "Keep center path",
+                "Approach the central structure",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0056.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速向前航行，注意避开左侧的大型珊瑚结构，向前方光线充足的开阔水域探索。",
+        "output": {
+            "reasoning": "图像左侧有大型珊瑚结构，需保持安全距离。前方及右侧区域光线充足且水域开阔，是理想的探索方向。机器人应在保持匀速的同时，微调航向向右避开障碍，随后向光亮处直线航行。",
+            "action": [
+                "Maintain constant speed",
+                "Steer slightly right to avoid left coral",
+                "Go straight towards the light",
+                "Explore open water"
+            ]
+        },
+        "images": [
+            "./data/images/0057.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前方橙色结构靠近，并尝试对准其绿色开口进行抵近观察，注意保持姿态平稳。",
+        "output": {
+            "reasoning": "橙色结构位于机器人正前方，其绿色的开口清晰可见。为了执行抵近观察，机器人需要直线前进，并在接近时微调姿态以对准开口中心，同时控制速度以保持平稳。",
+            "action": [
+                "Go straight",
+                "Align with green opening",
+                "Slowly approach",
+                "Hover and observe"
+            ]
+        },
+        "images": [
+            "./data/images/0061.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前匀速行驶，穿过带有红色浮标的条纹结构和远处黑色潜水器之间的空隙，注意观察底部沙地的变化。",
+        "output": {
+            "reasoning": "图像左侧可见带有红色浮标的条纹结构，右侧远处有黑色潜水器。目标路径位于两者之间的空隙。机器人需要保持匀速前进，对准空隙穿过，并实时监测底部沙地的纹理和孔洞变化。",
+            "action": [
+                "Go straight",
+                "Adjust heading towards the gap",
+                "Maintain constant speed",
+                "Monitor seabed changes",
+                "Pass through the gap",
+                "Stop"
+            ]
+        },
+        "images": [
+            "./data/images/0062.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向左侧绕过面前的大型珊瑚结构，同时保持匀速并注意观察背景中的发光目标。",
+        "output": {
+            "reasoning": "图像中心是一个巨大的圆形珊瑚结构，阻挡了前进路径。左侧背景中有一个明显的发光目标。根据指令，机器人需要向左转向以避开珊瑚，保持匀速前进绕过障碍物，并持续观察背景中的发光点。",
+            "action": [
+                "Turn left",
+                "Go straight",
+                "Maintain constant speed",
+                "Track glowing target",
+                "Bypass coral"
+            ]
+        },
+        "images": [
+            "./data/images/0065.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "保持匀速向前，从右侧大型珊瑚和左侧珊瑚群之间穿过去，注意观察底部地形变化。",
+        "output": {
+            "reasoning": "图像右侧有一个巨大的伞状珊瑚，左侧下方有一组较小的珊瑚群，两者之间存在明显的通道。指令要求从中间穿过并观察底部，因此需要微调航向对准间隙，保持匀速前进，并向下俯视观察地形。",
+            "action": [
+                "Adjust heading to the gap",
+                "Go straight at constant speed",
+                "Tilt camera down to observe terrain",
+                "Maintain course between corals",
+                "Continue forward"
+            ]
+        },
+        "images": [
+            "./data/images/0066.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "向前匀速航行，注意避开右侧的大型珊瑚礁，并保持对底部散落目标的持续观察。",
+        "output": {
+            "reasoning": "当前视野中，右侧存在一个显著的大型珊瑚礁，底部散落着多个带斑点的水生生物（目标）。为了安全执行指令，机器人需要保持向前的动力，同时向左微调方向以远离右侧障碍物，并维持较低的航行高度或视角以确保持续观察底部的散落目标。",
+            "action": [
+                "Go straight",
+                "Slightly turn left to avoid the reef on the right",
+                "Maintain constant speed",
+                "Keep observing the bottom targets",
+                "Continue forward"
+            ]
+        },
+        "images": [
+            "./data/images/0067.png"
+        ]
+    },
+    {
+        "instruction": "# Role\n你是一个先进的水下机器人纯视觉-语言-动作（VLA）任务规划模型。你的核心能力是根据单目RGB图像（视觉输入）和用户的自然语言指令（instruction），将一个宏观的复杂任务拆解为一系列逻辑严密、可执行的自然语言原子步骤列表。\n\n# Context & Constraints\n1. **环境**：水下环境，可能存在光照不均、浑浊或动态障碍物。\n2. **输入**：\n    - 当前视角的单目 RGB 图像（你需要分析图像中的物体位置、朝向、障碍物）。\n    - 用户的宏观指令（例如：“避开红色障碍物向右移动”或“接近侧面的岩石”）。\n3. **输出限制**：\n    - 输出必须符合提供的 JSON Schema 格式。\n    - action 字段必须是一个字符串列表 (List of Strings)。\n    - 步骤描述应简洁、自然、动作性强（例如：\"Turn right\", \"Go straight\"）。\n\n# Workflow\n在生成输出前，请在内心进行以下推理：\n1. 视觉感知：识别图像中的关键目标（Target）和障碍物（Obstacles）。\n2. 空间推理：判断机器人与目标的相对位置（左侧？前方？距离远近？）。\n3. 规划拆解：根据相对位置，规划路径并将其切分为连续动作。\n\n# Examples\n## Example 1\nUser Instruction: \"接近侧面的岩石\"\nImage Analysis: 岩石位于右前方，无障碍。\nOutput: \n{\n  \"reasoning\": \"目标岩石在右前方约2米处，路径无障碍，首先转向并接近。\",\n  \"action\": [\"Turn right\", \"Go straight\", \"Close to target\", \"Stop\"]\n}\n\n## Example 2\nUser Instruction: \"寻找并检查黄色的管道\"\nImage Analysis: 当前视野未见管道，左侧有模糊阴影。\nOutput:\n{\n  \"reasoning\": \"视野内未发现目标，左侧阴影疑似目标，建议左转搜索。\",\n  \"action\": [\"Turn left\", \"Search for yellow pipe\", \"Approach pipe\", \"Stop\"]\n}\n\n# Task\n请根据提供的图像和指令，生成对应的推理过程和动作拆解列表。\n",
+        "input": "沿着右侧的黄色管线向前匀速航行，注意避开底部的珊瑚礁并观察左侧潜航器的动态。",
+        "output": {
+            "reasoning": "右侧黄色管线清晰可见，可作为导航参照。底部有散落的珊瑚礁，需保持安全高度以防碰撞。左侧有一台潜航器正在并行或停留，需在前进过程中持续观察其动态。路径前方开阔，适合匀速航行。",
+            "action": [
+                "Align with the yellow pipeline",
+                "Maintain altitude to avoid corals",
+                "Go straight at constant speed",
+                "Monitor the submersible on the left",
+                "Follow the pipeline"
+            ]
+        },
+        "images": [
+            "./data/images/0068.png"
+        ]
+    }
+]

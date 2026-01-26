@@ -1,9 +1,11 @@
    - 单卡训练：python qwen3vl_finetune_proper.py config/single_gpu_config_full.yaml
-   - 多卡训练：python qwen3vl_finetune_proper_multi_gpu.py --config config/multi_gpu_config_full.yaml
-   - 评估脚本：python evaluate_finetuning_final.py config/evaluation_config.yaml
-    - 评估脚本：python evaluate_finetuning_final.py config/evaluation_config_full.yaml
+   python qwen3vl_finetune_proper.py config/single_gpu_config.yaml
+   - 多卡训练：torchrun --nproc_per_node=2 qwen3vl_finetune_proper_multi_gpu.py --config config/multi_gpu_config.yaml
+    torchrun --nproc_per_node=2 python qwen3vl_finetune_proper_multi_gpu.py --config config/multi_gpu_config.yaml
+   - 评估脚本：torchrun --nproc_per_node=2  python evaluate_finetuning_final.py config/evaluation_config.yaml
+    - 评估脚本：torchrun --nproc_per_node=2  python evaluate_finetuning_final.py config/evaluation_config_full.yaml
 # Qwen3-VL-2B-Instruct 微调项目完整指南
-
+python qwen3vl_finetune_proper_multi_gpu.py --config config/multi_gpu_config8b.yaml
 ## 下载模型
 
 首先，从魔搭(ModelScope)下载 Qwen3-VL-2B-Instruct 模型到指定目录：
@@ -14,7 +16,7 @@ pip install modelscope
 
 # 下载模型
 export MODELSCOPE_CACHE=~/.cache/modelscope/hub
-modelscope download --model qwen/Qwen3-VL-2B-Instruct
+modelscope download --model qwen/Qwen3-VL-8B-Instruct
 ```
 
 确保模型被下载到 `/root/.cache/modelscope/hub/models/qwen/Qwen3-VL-2B-Instruct` 目录下，这是代码中默认的模型路径。
@@ -46,6 +48,34 @@ modelscope download --model qwen/Qwen3-VL-2B-Instruct
 - **配置文件**: `adapter_config.json`
 
 ## 使用方法
+
+### 调整视觉编码器 (VIT) 的LoRA微调
+
+如果您希望在LoRA微调中调整视觉编码器部分，您可以：
+
+1. 使用专门的视觉LoRA配置文件：
+   ```bash
+   python qwen3vl_finetune_proper.py config/single_gpu_config_vit_only_lora.yaml
+   ```
+
+2. 或者在现有配置中添加视觉模块：
+   ```yaml
+   target_modules:
+     # 原有的语言模型模块...
+     # 视觉模型模块 (VIT相关)
+     - "visual.patch_embed.proj"  # 视觉补丁嵌入投影层
+     - "visual.pos_embed"  # 位置嵌入
+     - "visual.blocks.*.attn.qkv"  # 所有注意力层的QKV投影
+     - "visual.blocks.*.attn.proj"  # 所有注意力层的输出投影
+     - "visual.blocks.*.mlp.linear_fc1"  # 所有MLP前馈层的第一层
+     - "visual.blocks.*.mlp.linear_fc2"  # 所有MLP前馈层的第二层
+     - "visual.blocks.*.norm1"  # 所有层归一化层1
+     - "visual.blocks.*.norm2"  # 所有层归一化层2
+     - "visual.merger.*"  # 视觉合并模块
+     - "visual.deepstack_merger_list.*"  # 深堆栈合并模块
+   ```
+
+这将使LoRA适配器专门针对视觉编码器的各个组件，以更好地适应您的显微镜图像任务。
 
 ### 模型加载与推理
 ```python
@@ -320,6 +350,7 @@ test_model_performance()
 - `lora_alpha`: LoRA缩放因子（仅在lora方法时有效）
 - `lora_dropout`: LoRA层dropout概率（仅在lora方法时有效）
 - `target_modules`: 应用LoRA的目标模块（仅在lora方法时有效）
+  - 可包括视觉编码器模块如："visual.blocks.*.attn.qkv", "visual.patch_embed.proj" 等
 - `num_train_epochs`: 训练轮数
 - `per_device_train_batch_size`: 每设备训练批次大小
 - `learning_rate`: 学习率

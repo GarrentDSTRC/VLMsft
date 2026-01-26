@@ -123,56 +123,120 @@ class DataCollatorForQwen3VL:
                 # 没有图像，只处理文本
                 images_list.append(None)
 
-        # 处理文本和图像 - 根据是否有图像决定处理方式
-        if any(img is not None for img in images_list):
-            # 有图像的情况，使用messages格式
-            processed_inputs_list = []
-            for i, (text, img) in enumerate(zip(texts, images_list)):
-                if img is not None:
-                    # 包含图像的消息格式
-                    messages = [
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "image"},
-                                {"type": "text", "text": text.split('\n<|assistant|>\n')[0].replace('<|user|>\n', '')}
-                            ]
-                        }
-                    ]
+        # 分别收集有图像和无图像的样本
+        texts_with_images = []
+        images_for_processing = []
+        texts_without_images = []
 
-                    # 应用对话模板
-                    formatted_text = self.processor.apply_chat_template(
-                        messages,
-                        tokenize=False,
-                        add_generation_prompt=False
-                    )
+        for text, img in zip(texts, images_list):
+            if img is not None:
+                texts_with_images.append(text)
+                images_for_processing.append(img)
+            else:
+                texts_without_images.append(text)
 
-                    # 处理文本和图像
-                    inputs = self.processor(
-                        text=formatted_text,
-                        images=img,
-                        padding=True,
-                        truncation=True,
-                        max_length=2048,
-                        return_tensors="pt"
-                    )
-                else:
-                    # 纯文本处理
-                    inputs = self.processor(
-                        text=text,
-                        padding=True,
-                        truncation=True,
-                        max_length=2048,
-                        return_tensors="pt"
-                    )
-                processed_inputs_list.append(inputs)
+        # 处理有图像的样本
+        batch_with_images = {}
+        if texts_with_images:
+            # 为有图像的样本构建消息格式
+            messages_list = []
+            for text in texts_with_images:
+                messages = [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "image"},
+                            {"type": "text", "text": text.split('\n<|assistant|>\n')[0].replace('<|user|>\n', '')}
+                        ]
+                    }
+                ]
+                messages_list.extend(messages)  # 为每个样本单独处理
 
-            # 合并批次
+            # 应用对话模板并处理文本和图像
+            formatted_texts = []
+            for msg in messages_list:
+                formatted_text = self.processor.apply_chat_template(
+                    [msg],  # 每次处理一个消息
+                    tokenize=False,
+                    add_generation_prompt=False
+                )
+                formatted_texts.append(formatted_text)
+
+            # 批量处理文本和图像
+            batch_with_images = self.processor(
+                text=formatted_texts,
+                images=images_for_processing,
+                padding=True,  # 现在启用padding，让processor处理
+                truncation=True,
+                max_length=2048,
+                return_tensors="pt"
+            )
+
+        # 处理无图像的样本
+        batch_without_images = {}
+        if texts_without_images:
+            batch_without_images = self.processor(
+                text=texts_without_images,
+                padding=True,
+                truncation=True,
+                max_length=2048,
+                return_tensors="pt"
+            )
+
+        # 合并两个批次
+        if batch_with_images and batch_without_images:
+            # 合并两个批次的数据
             batch = {}
-            for key in processed_inputs_list[0].keys():
-                batch[key] = torch.cat([inputs[key] for inputs in processed_inputs_list], dim=0)
+            all_keys = set(list(batch_with_images.keys()) + list(batch_without_images.keys()))
+
+            for key in all_keys:
+                if key in batch_with_images and key in batch_without_images:
+                    # 两个批次都有这个键，合并它们
+                    tensor1 = batch_with_images[key]
+                    tensor2 = batch_without_images[key]
+
+                    # 确保两个张量维度兼容
+                    if tensor1.shape[1:] == tensor2.shape[1:]:
+                        # 如果除了批次维度外其他维度相同，直接拼接
+                        batch[key] = torch.cat([tensor1, tensor2], dim=0)
+                    else:
+                        # 如果维度不同，需要进行填充
+                        max_seq_len = max(tensor1.shape[1] if len(tensor1.shape) > 1 else 0,
+                                         tensor2.shape[1] if len(tensor2.shape) > 1 else 0)
+
+                        # 对于input_ids, attention_mask等序列数据，进行填充
+                        if key in ['input_ids', 'attention_mask', 'labels']:
+                            # 确保张量是2维的
+                            if tensor1.dim() == 1:
+                                tensor1 = tensor1.unsqueeze(0)
+                            if tensor2.dim() == 1:
+                                tensor2 = tensor2.unsqueeze(0)
+
+                            # 计算需要填充的长度
+                            pad_len1 = max_seq_len - tensor1.shape[1]
+                            pad_len2 = max_seq_len - tensor2.shape[1]
+
+                            if pad_len1 > 0:
+                                pad_token_id = getattr(self.processor.tokenizer, 'pad_token_id', 0)
+                                tensor1 = torch.nn.functional.pad(tensor1, (0, pad_len1), value=pad_token_id)
+                            if pad_len2 > 0:
+                                pad_token_id = getattr(self.processor.tokenizer, 'pad_token_id', 0)
+                                tensor2 = torch.nn.functional.pad(tensor2, (0, pad_len2), value=pad_token_id)
+
+                            batch[key] = torch.cat([tensor1, tensor2], dim=0)
+                        else:
+                            # 对于其他类型的数据，尝试直接拼接
+                            batch[key] = torch.cat([tensor1, tensor2], dim=0)
+                elif key in batch_with_images:
+                    batch[key] = batch_with_images[key]
+                elif key in batch_without_images:
+                    batch[key] = batch_without_images[key]
+        elif batch_with_images:
+            batch = batch_with_images
+        elif batch_without_images:
+            batch = batch_without_images
         else:
-            # 纯文本处理
+            # 如果都没有，处理纯文本
             batch = self.processor(
                 text=texts,
                 padding=True,
@@ -185,7 +249,8 @@ class DataCollatorForQwen3VL:
         # 避免在DataLoader worker进程中引发CUDA reinitialization错误
 
         # 设置标签
-        batch['labels'] = batch['input_ids'].clone()
+        if 'labels' not in batch:
+            batch['labels'] = batch['input_ids'].clone()
         return batch
 
 
