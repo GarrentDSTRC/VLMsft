@@ -7,17 +7,16 @@ Qwen3-VL-2B-Instruct 模型微调效果评估脚本
 import json
 import torch
 import datetime
-from datasets import Dataset
-from transformers import AutoModelForImageTextToText, AutoProcessor
-from peft import PeftModel
 import os
+from datasets import Dataset
+from transformers import Qwen3VLForConditionalGeneration, Qwen3VLProcessor
+from peft import PeftModel
 from PIL import Image
 import base64
 from io import BytesIO
 import re
 from sklearn.metrics import accuracy_score, f1_score, precision_recall_fscore_support
 import numpy as np
-import os
 import yaml
 
 # 确保日志目录存在
@@ -100,6 +99,89 @@ def load_test_data(config):
     print(f"加载了 {len(test_data)} 个测试样本")
     return test_data
 
+def load_model_for_evaluation(model_path, adapter_path=None, device="cuda"):
+    """
+    智能加载模型：自动识别LoRA/全量模型
+    """
+    # 检测模型类型
+    is_lora = (os.path.exists(os.path.join(model_path, "adapter_model.bin")) or
+               os.path.exists(os.path.join(model_path, "adapter_model.safetensors"))) and \
+              os.path.exists(os.path.join(model_path, "adapter_config.json"))
+
+    # 检测全量微调模型
+    is_full = (os.path.exists(os.path.join(model_path, "pytorch_model.bin")) or
+               os.path.exists(os.path.join(model_path, "model.safetensors"))) and \
+              os.path.exists(os.path.join(model_path, "config.json"))
+
+    if is_lora or adapter_path:
+        # LoRA模式：需指定基础模型
+        if adapter_path:
+            # 如果提供了adapter_path，使用它作为LoRA路径
+            adapter_dir = adapter_path
+        else:
+            # 否则使用model_path作为LoRA路径
+            adapter_dir = model_path
+
+        # 从adapter_config.json中获取基础模型名称，如果不存在则使用默认值
+        adapter_config_path = os.path.join(adapter_dir, "adapter_config.json")
+        if os.path.exists(adapter_config_path):
+            with open(adapter_config_path, 'r', encoding='utf-8') as f:
+                adapter_config = json.load(f)
+            base_model = adapter_config.get("base_model_name_or_path", "/root/.cache/modelscope/hub/models/qwen/Qwen3-VL-2B-Instruct")
+        else:
+            base_model = "/root/.cache/modelscope/hub/models/qwen/Qwen3-VL-2B-Instruct"
+
+        print(f"→ 检测到LoRA模型，加载基础模型: {base_model}")
+
+        model = Qwen3VLForConditionalGeneration.from_pretrained(
+            base_model,
+            torch_dtype=torch.bfloat16,
+            device_map=device,
+            trust_remote_code=True
+        )
+
+        # 加载适配器
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(model, adapter_dir, is_trainable=False)
+        print(f"✓ LoRA适配器加载成功: {adapter_dir}")
+
+    elif is_full:
+        # 全量模型：直接加载
+        print(f"→ 加载全量微调模型: {model_path}")
+        model = Qwen3VLForConditionalGeneration.from_pretrained(
+            model_path,
+            torch_dtype=torch.bfloat16,
+            device_map=device,
+            trust_remote_code=True
+        )
+    else:
+        # 如果都不是，尝试作为基础模型加载
+        print(f"→ 尝试作为基础模型加载: {model_path}")
+        model = Qwen3VLForConditionalGeneration.from_pretrained(
+            model_path,
+            torch_dtype=torch.bfloat16,
+            device_map=device,
+            trust_remote_code=True
+        )
+
+    model.eval()
+    # 确定processor的路径 - 如果是LoRA，可能需要从基础模型路径加载
+    if is_lora and not os.path.exists(os.path.join(model_path, "tokenizer_config.json")):
+        # 如果是LoRA且目标路径缺少tokenizer配置，从基础模型加载
+        processor = Qwen3VLProcessor.from_pretrained(
+            base_model if 'base_model' in locals() else model_path,
+            trust_remote_code=True
+        )
+    else:
+        # 否则从目标路径加载
+        processor = Qwen3VLProcessor.from_pretrained(
+            model_path,
+            trust_remote_code=True
+        )
+
+    return model, processor
+
+
 def prepare_model(config, is_finetuned=False):
     """准备模型 - 基础模型或微调模型"""
     model_name = config['base_model_path']
@@ -113,122 +195,84 @@ def prepare_model(config, is_finetuned=False):
     if is_finetuned:
         print("准备微调后的模型...")
 
-        # 加载基础模型
-        model = AutoModelForImageTextToText.from_pretrained(
-            model_name,
-            torch_dtype=torch.bfloat16,
-            device_map=device,  # 使用指定的单一设备
-            trust_remote_code=True,
-            low_cpu_mem_usage=True
-        )
+        # 从配置文件获取模型搜索路径
+        model_paths = config.get('finetuned_model_paths', [
+            "./qwen3-vl-2b-instruct-full",          # 全量微调模型路径
+            "./qwen3-vl-2b-instruct-lora",          # LoRA单卡模型路径
+            "./qwen3-vl-2b-instruct-lora-multigpu", # LoRA多卡模型路径
+            "./logs/qwen3-vl-2b-instruct-lora",      # LoRA单卡模型路径(日志)
+            "./logs/qwen3-vl-2b-instruct-lora-multigpu"  # LoRA多卡模型路径(日志)
+        ])
 
-        # 尝试加载微调模型（可能是LoRA或全量微调）
-        try:
-            from peft import PeftModel
-            import json
+        loaded_model = False
+        model = None
+        processor = None
 
-            # 从配置文件获取模型搜索路径
-            model_paths = config.get('finetuned_model_paths', [
-                "./qwen3-vl-2b-instruct-full",          # 全量微调模型路径
-                "./qwen3-vl-2b-instruct-lora",          # LoRA单卡模型路径
-                "./qwen3-vl-2b-instruct-lora-multigpu", # LoRA多卡模型路径
-                "./logs/qwen3-vl-2b-instruct-lora",      # LoRA单卡模型路径(日志)
-                "./logs/qwen3-vl-2b-instruct-lora-multigpu"  # LoRA多卡模型路径(日志)
-            ])
+        for model_path in model_paths:
+            if os.path.exists(model_path):
+                print(f"发现模型路径: {model_path}")
 
-            loaded_model = False
-            for model_path in model_paths:
-                if os.path.exists(model_path):
-                    print(f"发现模型路径: {model_path}")
+                try:
+                    # 首先尝试直接加载
+                    model, processor = load_model_for_evaluation(model_path, device=str(device))
+                    loaded_model = True
+                    print(f"成功加载模型: {model_path}")
+                    break
+                except Exception as e:
+                    print(f"直接加载模型失败 {model_path}: {e}")
 
-                    # 检查是否为全量微调模型
-                    config_path = os.path.join(model_path, "config.json")
-                    if os.path.exists(config_path):
-                        with open(config_path, 'r', encoding='utf-8') as f:
-                            config = json.load(f)
+                    # 如果直接加载失败，尝试搜索子目录中的检查点
+                    if os.path.isdir(model_path):
+                        subdirs = [d for d in os.listdir(model_path)
+                                  if os.path.isdir(os.path.join(model_path, d))]
 
-                        # 检查配置中是否有adapter相关的信息来判断模型类型
-                        has_adapter_info = any(key in config for key in ["peft_type", "adapter_config", "adapters"])
+                        # 按名称排序，优先尝试checkpoint-*目录
+                        subdirs_sorted = sorted(subdirs,
+                                              key=lambda x: (not x.startswith('checkpoint-'), x))
 
-                        if has_adapter_info:
-                            # 这是一个LoRA模型
-                            print(f"加载LoRA适配器: {model_path}")
-                            model = PeftModel.from_pretrained(model, model_path, device_map=device)
-                            model = model.merge_and_unload()  # 合并LoRA权重进行评估
-                            print("LoRA适配器已合并到基础模型中")
-                            loaded_model = True
-                            break
-                        else:
-                            # 这可能是一个全量微调模型
-                            print(f"加载全量微调模型: {model_path}")
-                            model = AutoModelForImageTextToText.from_pretrained(
-                                model_path,
-                                torch_dtype=torch.bfloat16,
-                                device_map=device,  # 使用指定的单一设备
-                                trust_remote_code=True,
-                                low_cpu_mem_usage=True
-                            )
-                            loaded_model = True
-                            break
-                    else:
-                        # 如果没有配置文件，尝试作为LoRA模型加载
-                        try:
-                            print(f"尝试作为LoRA模型加载: {model_path}")
-                            model = PeftModel.from_pretrained(model, model_path, device_map=device)
-                            model = model.merge_and_unload()  # 合并LoRA权重进行评估
-                            print("LoRA适配器已合并到基础模型中")
-                            loaded_model = True
-                            break
-                        except:
-                            print(f"无法作为LoRA模型加载: {model_path}")
-                            continue
+                        for subdir in subdirs_sorted:
+                            subdir_path = os.path.join(model_path, subdir)
+                            print(f"尝试子目录: {subdir_path}")
 
-            if not loaded_model:
-                print(f"警告: 未找到有效的微调模型路径")
+                            try:
+                                model, processor = load_model_for_evaluation(subdir_path, device=str(device))
+                                loaded_model = True
+                                print(f"成功从子目录加载模型: {subdir_path}")
+                                break
+                            except Exception as sub_e:
+                                print(f"子目录加载失败 {subdir_path}: {sub_e}")
+                                continue
 
-        except ImportError:
-            print(f"警告: PEFT库未安装或不可用，尝试直接加载模型")
-            # 如果无法导入peft，尝试作为完整模型加载
-            model_paths = config.get('finetuned_model_paths', [
-                "./qwen3-vl-2b-instruct-full",
-                "./qwen3-vl-2b-instruct-lora",
-                "./qwen3-vl-2b-instruct-lora-multigpu",
-                "./logs/qwen3-vl-2b-instruct-lora",
-                "./logs/qwen3-vl-2b-instruct-lora-multigpu"
-            ])
-
-            for model_path in model_paths:
-                if os.path.exists(model_path):
-                    try:
-                        print(f"直接加载模型: {model_path}")
-                        model = AutoModelForImageTextToText.from_pretrained(
-                            model_path,
-                            torch_dtype=torch.bfloat16,
-                            device_map=device,  # 使用指定的单一设备
-                            trust_remote_code=True,
-                            low_cpu_mem_usage=True
-                        )
-                        print(f"成功加载模型: {model_path}")
+                    if loaded_model:
                         break
-                    except Exception as e:
-                        print(f"加载模型失败 {model_path}: {e}")
-                        continue
-        except Exception as e:
-            print(f"警告: 加载微调模型失败: {e}")
+
+        if not loaded_model:
+            print(f"警告: 未找到有效的微调模型路径")
+            # 如果没找到微调模型，返回基础模型
+            model = Qwen3VLForConditionalGeneration.from_pretrained(
+                model_name,
+                torch_dtype=torch.bfloat16,
+                device_map=device,
+                trust_remote_code=True,
+                low_cpu_mem_usage=True
+            )
+            processor = Qwen3VLProcessor.from_pretrained(
+                model_name,
+                trust_remote_code=True
+            )
     else:
         print("准备基础模型...")
-        model = AutoModelForImageTextToText.from_pretrained(
+        model = Qwen3VLForConditionalGeneration.from_pretrained(
             model_name,
             torch_dtype=torch.bfloat16,
             device_map=device,  # 使用指定的单一设备
             trust_remote_code=True,
             low_cpu_mem_usage=True
         )
-
-    processor = AutoProcessor.from_pretrained(
-        model_name,
-        trust_remote_code=True
-    )
+        processor = Qwen3VLProcessor.from_pretrained(
+            model_name,
+            trust_remote_code=True
+        )
 
     return model, processor
 
@@ -475,17 +519,17 @@ def main():
 
     print(f"使用 {min(config.get('max_test_samples', 60), len(test_data))} 个样本进行评估")
 
-    # 评估基础模型
-    print("\n" + "-"*60)
-    print("评估基础模型 (Qwen3-VL-2B-Instruct)...")
-    base_model, base_processor = prepare_model(config, is_finetuned=False)
-    base_acc, base_preds, base_refs, base_detailed_results = evaluate_model(base_model, base_processor, test_data, config, "基础模型")
-
     # 评估微调模型
     print("\n" + "-"*60)
     print("评估微调模型 (Qwen3-VL-2B-Instruct-LoRA)...")
     ft_model, ft_processor = prepare_model(config, is_finetuned=True)
     ft_acc, ft_preds, ft_refs, ft_detailed_results = evaluate_model(ft_model, ft_processor, test_data, config, "微调模型")
+
+    # 评估基础模型
+    print("\n" + "-"*60)
+    print("评估基础模型 (Qwen3-VL-2B-Instruct)...")
+    base_model, base_processor = prepare_model(config, is_finetuned=False)
+    base_acc, base_preds, base_refs, base_detailed_results = evaluate_model(base_model, base_processor, test_data, config, "基础模型")
 
     # 计算改进
     acc_improvement = ft_acc - base_acc
@@ -500,11 +544,11 @@ def main():
     print("="*70)
     print(f"测试样本数: {min(60, len(test_data))}")
     print()
-    print("基础模型:")
-    print(f"  准确率: {base_acc:.4f}")
-    print()
     print("微调模型:")
     print(f"  准确率: {ft_acc:.4f}")
+    print()
+    print("基础模型:")
+    print(f"  准确率: {base_acc:.4f}")
     print()
     print("性能改进:")
     print(f"  绝对改进: {acc_improvement:+.4f}")
@@ -530,8 +574,8 @@ def main():
             print(f"样本 {i+1}:")
             print(f"  问题: {test_data[i]['question'][:100]}...")
             print(f"  答案: {test_data[i]['answer'][:100]}")
-            print(f"  基础: {base_preds[i][:100]}")
             print(f"  微调: {ft_preds[i][:100]}")
+            print(f"  基础: {base_preds[i][:100]}")
             print()
 
     # 创建完整的对比结果
@@ -542,12 +586,12 @@ def main():
                 'sample_id': base_detailed_results[i]['sample_id'],
                 'question': base_detailed_results[i]['question'],
                 'expected_answer': base_detailed_results[i]['expected_answer'],
-                'base_prediction': base_detailed_results[i]['predicted_answer'],
-                'base_is_correct': base_detailed_results[i]['is_correct'],
-                'base_status': base_detailed_results[i]['status'],
                 'ft_prediction': ft_detailed_results[i]['predicted_answer'],
                 'ft_is_correct': ft_detailed_results[i]['is_correct'],
                 'ft_status': ft_detailed_results[i]['status'],
+                'base_prediction': base_detailed_results[i]['predicted_answer'],
+                'base_is_correct': base_detailed_results[i]['is_correct'],
+                'base_status': base_detailed_results[i]['status'],
                 'improved': ft_detailed_results[i]['is_correct'] and not base_detailed_results[i]['is_correct'],
                 'regressed': not ft_detailed_results[i]['is_correct'] and base_detailed_results[i]['is_correct']
             }
@@ -556,8 +600,8 @@ def main():
     # 保存评估结果
     evaluation_results = {
         'test_samples_count': min(config.get('max_test_samples', 60), len(test_data)),
-        'base_model_accuracy': base_acc,
         'fine_tuned_model_accuracy': ft_acc,
+        'base_model_accuracy': base_acc,
         'absolute_improvement': acc_improvement,
         'relative_improvement_percent': improvement_percentage,
         'timestamp': str(datetime.datetime.now()),
@@ -565,14 +609,14 @@ def main():
             {
                 'question': test_data[i]['question'][:200],
                 'expected': test_data[i]['answer'][:200] if i < len(test_data) else '',
-                'base_prediction': base_preds[i][:200] if i < len(base_preds) else '',
-                'fine_tuned_prediction': ft_preds[i][:200] if i < len(ft_preds) else ''
+                'fine_tuned_prediction': ft_preds[i][:200] if i < len(ft_preds) else '',
+                'base_prediction': base_preds[i][:200] if i < len(base_preds) else ''
             }
             for i in range(min(config.get('max_preview_samples', 3), len(test_data)))
         ],
         'detailed_comparison_results': comparison_results,
-        'base_model_detailed_results': base_detailed_results,
-        'fine_tuned_model_detailed_results': ft_detailed_results
+        'fine_tuned_model_detailed_results': ft_detailed_results,
+        'base_model_detailed_results': base_detailed_results
     }
 
     # 保存结果到JSON文件
@@ -588,8 +632,8 @@ def main():
         f.write("="*70 + "\n")
         f.write(f"评估时间: {datetime.datetime.now()}\n")
         f.write(f"测试样本数: {min(config.get('max_test_samples', 60), len(test_data))}\n")
-        f.write(f"基础模型准确率: {base_acc:.4f}\n")
         f.write(f"微调模型准确率: {ft_acc:.4f}\n")
+        f.write(f"基础模型准确率: {base_acc:.4f}\n")
         f.write(f"绝对改进: {acc_improvement:+.4f}\n")
         f.write(f"相对改进: {improvement_percentage:+.2f}%\n")
 
@@ -605,8 +649,8 @@ def main():
             f.write(f"样本 {i+1} (ID: {result['sample_id']}):\n")
             f.write(f"  问题: {result['question']}\n")
             f.write(f"  标准答案: {result['expected_answer']}\n")
-            f.write(f"  基础模型预测: {result['base_prediction']} [{result['base_status']}]\n")
             f.write(f"  微调模型预测: {result['ft_prediction']} [{result['ft_status']}]\n")
+            f.write(f"  基础模型预测: {result['base_prediction']} [{result['base_status']}]\n")
 
             if result['improved']:
                 f.write(f"  结果: ✅ 微调模型改进\n")
@@ -627,8 +671,8 @@ def main():
         f.write(f"微调改进样本数: {improved_count}\n")
         f.write(f"微调退步样本数: {regressed_count}\n")
         f.write(f"无变化样本数: {same_count}\n")
-        f.write(f"基础模型准确率: {base_acc:.4f}\n")
         f.write(f"微调模型准确率: {ft_acc:.4f}\n")
+        f.write(f"基础模型准确率: {base_acc:.4f}\n")
         f.write(f"准确率提升: {acc_improvement:+.4f}\n")
 
     print(f"详细评估结果已保存到: {result_file}")
