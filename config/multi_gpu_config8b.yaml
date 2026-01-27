@@ -1,3 +1,4 @@
+
 # Qwen3-VL 多卡微调配置文件
 # ==================================
 
@@ -5,7 +6,7 @@
 finetune_method: "lora"  # 微调方法: "lora" 或 "full" (全量微调)
 
 # 模型配置
-model_name: "/root/.cache/modelscope/hub/models/qwen/Qwen3-VL-2B-Instruct"  # 基础模型路径
+model_name: "/wangzhangyuan-oss/Qwen3-VL-8B-Instruct"  # 基础模型路径
 model_dtype: "bfloat16"  # 模型精度 (bfloat16 通常更适合大模型)
 
 # 数据配置
