@@ -24,54 +24,64 @@ def load_config(config_path="./config/multi_gpu_config.yaml"):
 
 
 def prepare_dataset(config):
-    """准备训练数据集 - 适配Llama Factory格式，包含图像信息"""
-    # 读取转换后的数据
+    """准备训练数据集 - 使用Qwen3-VL官方结构化格式"""
     with open(config['dataset_path'], 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    # 转换为HuggingFace Dataset格式
     formatted_data = []
     for item in data:
-        # 处理Llama Factory格式数据
         instruction = item.get('instruction', '')
         input_text = item.get('input', '')
         output = item.get('output', {})
-        images = item.get('images', [])  # 获取图像路径
+        images = item.get('images', [])
 
-        # 构建完整的对话
-        # 将instruction和input组合成用户输入
-        user_input = instruction
+        # 构建用户输入文本
+        user_text = instruction
         if input_text:
-            user_input += "\n\n" + input_text
+            user_text += "\n\n" + input_text
 
-        # 处理输出 - output可能是字典格式
+        # 构建助手回复（确保为纯净JSON）
         if isinstance(output, dict):
-            if 'reasoning' in output and 'action' in output:
-                # 按照JSON格式构建答案
-                assistant_response = json.dumps(output, ensure_ascii=False, indent=2)
-            else:
-                # 如果只有部分字段，尝试构建答案
-                response_parts = []
-                for key, value in output.items():
-                    if isinstance(value, list):
-                        response_parts.append(f"{key}: {str(value)}")
-                    else:
-                        response_parts.append(f"{key}: {value}")
-                assistant_response = "\n".join(response_parts)
+            try:
+                assistant_content = json.dumps(output, ensure_ascii=False)
+            except:
+                parts = [f"{k}: {v}" for k, v in output.items()]
+                assistant_content = "\n".join(parts)
         else:
-            assistant_response = str(output)
+            assistant_content = str(output)
 
-        # 构建对话格式
-        conversation_str = f"<|user|>\n{user_input}\n<|assistant|>\n{assistant_response}"
+        # 清洗输出数据，移除markdown代码块
+        if assistant_content.startswith("```"):
+            import re
+            match = re.search(r'```(?:json)?\s*(.*?)\s*```', assistant_content, re.DOTALL)
+            if match:
+                assistant_content = match.group(1).strip()
+
+        # 确保images始终是一个列表，即使为空
+        if not isinstance(images, list):
+            images = [images] if images else []
+
+        # 将复杂的消息结构存储为JSON字符串，避免PyArrow嵌套结构问题
+        messages_json = json.dumps([
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image"},
+                    {"type": "text", "text": user_text}
+                ]
+            },
+            {
+                "role": "assistant",
+                "content": assistant_content  # 必须是纯字符串
+            }
+        ], ensure_ascii=False)
 
         formatted_data.append({
-            "text": conversation_str,
-            "images": images  # 保存图像路径信息
+            "messages_json": messages_json,  # 将messages作为JSON字符串存储
+            "images": images
         })
 
-    # 创建Dataset对象
-    dataset = Dataset.from_list(formatted_data)
-    return dataset
+    return Dataset.from_list(formatted_data)
 
 
 class DataCollatorForQwen3VL:
@@ -79,182 +89,123 @@ class DataCollatorForQwen3VL:
         self.processor = processor
         self.config = config
 
-    def __call__(self, features):
-        # 提取文本和图像
-        texts = []
-        images_list = []
-
-        for feature in features:
-            texts.append(feature['text'])
-            # 如果有图像路径，加载图像
-            if 'images' in feature and feature['images']:
-                import os
-                from PIL import Image
+    def load_image(self, image_path):
+        """安全加载图像"""
+        if not image_path:
+            return None
+        try:
+            if image_path.startswith('data:image'):
                 import base64
                 import io
+                from PIL import Image
+                base64_str = image_path.split(',')[1]
+                image_bytes = base64.b64decode(base64_str)
+                return Image.open(io.BytesIO(image_bytes)).convert('RGB')
 
-                image_path = feature['images'][0]  # 假设只处理第一个图像
-                if image_path.startswith('data:image'):
-                    # 处理base64图像
-                    base64_str = image_path.split(',')[1]
-                    image_bytes = base64.b64decode(base64_str)
-                    pil_image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-                    images_list.append(pil_image)
-                else:
-                    # 处理本地文件路径
-                    possible_paths = [
-                        image_path,  # 原始路径
-                        os.path.join(os.path.dirname(self.config['dataset_path']), image_path),  # 相对于数据集文件
-                        os.path.join('.', image_path),  # 相对当前目录
-                        os.path.join('..', image_path),  # 上级目录
-                    ]
+            import os
+            possible_paths = [
+                image_path,
+                os.path.join(os.path.dirname(self.config['dataset_path']), image_path),
+                os.path.join('.', image_path)
+            ]
+            for img_path in possible_paths:
+                if os.path.exists(img_path):
+                    from PIL import Image
+                    return Image.open(img_path).convert('RGB')
+            return None
+        except:
+            return None
 
-                    pil_image = None
-                    for img_path in possible_paths:
-                        if os.path.exists(img_path):
-                            pil_image = Image.open(img_path).convert('RGB')
-                            break
+    def __call__(self, features):
+        # 处理每个特征
+        batch = {'input_ids': [], 'attention_mask': [], 'pixel_values': [], 'image_grid_thw': [], 'labels': []}
 
-                    if pil_image is not None:
-                        images_list.append(pil_image)
-                    else:
-                        # 如果找不到图像，只处理文本
-                        images_list.append(None)
-            else:
-                # 没有图像，只处理文本
-                images_list.append(None)
+        for feature in features:
+            # 从JSON字符串解析messages
+            import json as json_module
+            messages = json_module.loads(feature['messages_json'])
 
-        # 分别收集有图像和无图像的样本
-        texts_with_images = []
-        images_for_processing = []
-        texts_without_images = []
+            # 加载图像
+            img = None
+            if feature.get('images'):
+                img = self.load_image(feature['images'][0])
 
-        for text, img in zip(texts, images_list):
-            if img is not None:
-                texts_with_images.append(text)
-                images_for_processing.append(img)
-            else:
-                texts_without_images.append(text)
+            if img is None:
+                continue  # 跳过没有图像的样本
 
-        # 处理有图像的样本
-        batch_with_images = {}
-        if texts_with_images:
-            # 为有图像的样本构建消息格式
-            messages_list = []
-            for text in texts_with_images:
-                messages = [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "image"},
-                            {"type": "text", "text": text.split('\n<|assistant|>\n')[0].replace('<|user|>\n', '')}
-                        ]
-                    }
-                ]
-                messages_list.extend(messages)  # 为每个样本单独处理
-
-            # 应用对话模板并处理文本和图像
-            formatted_texts = []
-            for msg in messages_list:
-                formatted_text = self.processor.apply_chat_template(
-                    [msg],  # 每次处理一个消息
-                    tokenize=False,
-                    add_generation_prompt=False
-                )
-                formatted_texts.append(formatted_text)
-
-            # 批量处理文本和图像
-            batch_with_images = self.processor(
-                text=formatted_texts,
-                images=images_for_processing,
-                padding=True,  # 现在启用padding，让processor处理
-                truncation=True,
-                max_length=2048,
-                return_tensors="pt"
+            # 应用聊天模板
+            formatted_text = self.processor.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=False
             )
 
-        # 处理无图像的样本
-        batch_without_images = {}
-        if texts_without_images:
-            batch_without_images = self.processor(
-                text=texts_without_images,
+            # 处理文本和图像
+            inputs = self.processor(
+                text=[formatted_text],
+                images=[img],
                 padding=True,
                 truncation=True,
                 max_length=2048,
                 return_tensors="pt"
             )
 
-        # 合并两个批次
-        if batch_with_images and batch_without_images:
-            print("figggggggg+text")
-            # 合并两个批次的数据
-            batch = {}
-            all_keys = set(list(batch_with_images.keys()) + list(batch_without_images.keys()))
+            # 提取各个组件
+            batch['input_ids'].append(inputs['input_ids'][0])
+            batch['attention_mask'].append(inputs['attention_mask'][0])
+            batch['pixel_values'].append(inputs['pixel_values'])
+            batch['image_grid_thw'].append(inputs['image_grid_thw'][0])
 
-            for key in all_keys:
-                if key in batch_with_images and key in batch_without_images:
-                    # 两个批次都有这个键，合并它们
-                    tensor1 = batch_with_images[key]
-                    tensor2 = batch_without_images[key]
+            # 创建labels - 只对assistant部分计算损失
+            input_ids = inputs['input_ids'][0]
+            labels = input_ids.clone()
 
-                    # 确保两个张量维度兼容
-                    if tensor1.shape[1:] == tensor2.shape[1:]:
-                        # 如果除了批次维度外其他维度相同，直接拼接
-                        batch[key] = torch.cat([tensor1, tensor2], dim=0)
-                    else:
-                        # 如果维度不同，需要进行填充
-                        max_seq_len = max(tensor1.shape[1] if len(tensor1.shape) > 1 else 0,
-                                         tensor2.shape[1] if len(tensor2.shape) > 1 else 0)
+            # 找到assistant消息的起始位置，将user部分设为-100
+            # 这里简化处理，假设格式是固定的
+            assistant_token_id = self.processor.tokenizer.convert_tokens_to_ids("<|assistant|>")
+            if assistant_token_id is not None and assistant_token_id in input_ids:
+                assistant_start_idx = (input_ids == assistant_token_id).nonzero(as_tuple=True)[0][0]
+                # 将assistant之前的部分设为-100（不计算损失）
+                labels[:assistant_start_idx] = -100
+            else:
+                # 如果找不到assistant token，将所有内容都计算损失
+                pass
 
-                        # 对于input_ids, attention_mask等序列数据，进行填充
-                        if key in ['input_ids', 'attention_mask', 'labels']:
-                            # 确保张量是2维的
-                            if tensor1.dim() == 1:
-                                tensor1 = tensor1.unsqueeze(0)
-                            if tensor2.dim() == 1:
-                                tensor2 = tensor2.unsqueeze(0)
+            batch['labels'].append(labels)
 
-                            # 计算需要填充的长度
-                            pad_len1 = max_seq_len - tensor1.shape[1]
-                            pad_len2 = max_seq_len - tensor2.shape[1]
+        # 堆叠张量
+        import torch
+        if batch['input_ids']:  # 确保批次不为空
+            # 找到最大长度用于padding
+            max_length = max(ids.size(0) for ids in batch['input_ids'])
 
-                            if pad_len1 > 0:
-                                pad_token_id = getattr(self.processor.tokenizer, 'pad_token_id', 0)
-                                tensor1 = torch.nn.functional.pad(tensor1, (0, pad_len1), value=pad_token_id)
-                            if pad_len2 > 0:
-                                pad_token_id = getattr(self.processor.tokenizer, 'pad_token_id', 0)
-                                tensor2 = torch.nn.functional.pad(tensor2, (0, pad_len2), value=pad_token_id)
+            # Padding
+            padded_input_ids = []
+            padded_attention_masks = []
+            padded_labels = []
 
-                            batch[key] = torch.cat([tensor1, tensor2], dim=0)
-                        else:
-                            # 对于其他类型的数据，尝试直接拼接
-                            batch[key] = torch.cat([tensor1, tensor2], dim=0)
-                elif key in batch_with_images:
-                    batch[key] = batch_with_images[key]
-                elif key in batch_without_images:
-                    batch[key] = batch_without_images[key]
-        elif batch_with_images:
-            batch = batch_with_images
-            print("figggggggg")
-        elif batch_without_images:
-            batch = batch_without_images
-            print("textttttttt")
-        else:
-            # 如果都没有，处理纯文本
-            batch = self.processor(
-                text=texts,
-                padding=True,
-                truncation=True,
-                max_length=2048,
-                return_tensors="pt"
-            )
+            for i in range(len(batch['input_ids'])):
+                ids = batch['input_ids'][i]
+                attn = batch['attention_mask'][i]
+                lbl = batch['labels'][i]
 
-        # 不要在collate_fn中处理CUDA设备分配，让Trainer自动处理
-        # 避免在DataLoader worker进程中引发CUDA reinitialization错误
+                pad_length = max_length - ids.size(0)
+                pad_id = self.processor.tokenizer.pad_token_id or self.processor.tokenizer.eos_token_id
 
-        # 设置标签
-        if 'labels' not in batch:
-            batch['labels'] = batch['input_ids'].clone()
+                padded_ids = torch.cat([ids, torch.full((pad_length,), pad_id, dtype=ids.dtype)])
+                padded_attn = torch.cat([attn, torch.zeros(pad_length, dtype=attn.dtype)])
+                padded_lbl = torch.cat([lbl, torch.full((pad_length,), -100, dtype=lbl.dtype)])
+
+                padded_input_ids.append(padded_ids)
+                padded_attention_masks.append(padded_attn)
+                padded_labels.append(padded_lbl)
+
+            batch['input_ids'] = torch.stack(padded_input_ids)
+            batch['attention_mask'] = torch.stack(padded_attention_masks)
+            batch['labels'] = torch.stack(padded_labels)
+            batch['pixel_values'] = torch.cat(batch['pixel_values'], dim=0)
+            batch['image_grid_thw'] = torch.stack(batch['image_grid_thw'])
+
         return batch
 
 
@@ -624,6 +575,15 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
         ddp_find_unused_parameters=config['ddp_find_unused_parameters'],
     )
 
+    # 确保模型处于训练模式并激活LoRA参数
+    model.train()
+    if config['finetune_method'] == 'lora':
+        # 确保LoRA参数可训练
+        for name, param in model.named_parameters():
+            if "lora_" in name.lower():
+                param.requires_grad = True
+                print(f"激活LoRA参数: {name}")
+
     # 在模型创建之后、训练之前处理DDP问题
     # 注意：必须在应用LoRA后再应用DDP
     if dist.is_initialized():  # 使用分布式数据并行训练
@@ -667,16 +627,69 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
 
         # 只有在LoRA模式下才访问peft模型的方法
         if config['finetune_method'] == 'lora':
+            def print_trainable_parameters():
+                model.module.print_trainable_parameters()
+            model.print_trainable_parameters = print_trainable_parameters
             if rank == 0:  # 只在主进程打印
                 model.module.print_trainable_parameters()
     else:
         # 单GPU情况
         if config['finetune_method'] == 'lora':
             model.print_trainable_parameters()
+        model.train()  # 确保单GPU模式下也处于训练模式
 
     print(f"使用每设备批次大小: {config['per_device_train_batch_size']}")
     print("开始训练...")
+    
+    # 验证数据加载和loss计算
+    if rank == 0:
+        print("\n=== 训练前验证 ===")
+        # 1. 检查单样本processor输出
+        sample = train_dataset[0]
+        import json as json_module
+        test_messages = json_module.loads(sample["messages_json"])  # 从JSON字符串解析messages
+        test_image = DataCollatorForQwen3VL(processor, config).load_image(sample["images"][0])
 
+        # 使用apply_chat_template处理消息
+        formatted_text = processor.apply_chat_template(
+            test_messages,
+            tokenize=False,
+            add_generation_prompt=False
+        )
+
+        test_batch = processor(
+            text=formatted_text,
+            images=[test_image] if test_image else None,
+            padding=True,
+            return_tensors="pt"
+        )
+
+        # 检查图像token
+        image_token_id = processor.image_token_id
+        img_token_count = (test_batch["input_ids"][0] == image_token_id).sum().item()
+        print(f"图像token数量: {img_token_count} (可能因图像尺寸而异)")
+
+        # 检查labels mask
+        labels = test_batch.get("labels", test_batch["input_ids"].clone())
+        if labels is not None:
+            user_mask_ratio = (labels[0] == -100).sum().item() / labels[0].numel()
+            print(f"用户消息mask比例: {user_mask_ratio:.1%} (可能因数据而异)")
+        else:
+            print("警告: 未找到labels")
+
+        # 2. 前向传播测试loss
+        model.eval()
+        with torch.no_grad():
+            # 确保只传递模型需要的参数，包括Qwen3-VL特有的键
+            model_inputs = {k: v.to(f"cuda:{local_rank}") for k, v in test_batch.items() if k in ['input_ids', 'attention_mask', 'pixel_values', 'position_ids', 'image_grid_thw']}
+            outputs = model(**model_inputs)
+            if outputs is not None and hasattr(outputs, 'loss') and outputs.loss is not None:
+                print(f"初始loss: {outputs.loss.item():.4f} (合理范围: 2.0~8.0)")
+            else:
+                print("警告: loss为None或不可访问，继续训练...")
+        model.train()
+        print("=== 验证完成 ===\n")
+        
     # 创建训练器
     trainer = Trainer(
         model=model,
@@ -685,8 +698,11 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
         eval_dataset=eval_dataset,
         data_collator=DataCollatorForQwen3VL(processor, config),
         processing_class=processor,
-        callbacks=[SafeSaveCallback(finetune_method=config['finetune_method'])]  # 添加安全保存回调
+        callbacks=[SafeSaveCallback(finetune_method=config['finetune_method'])],  # 添加安全保存回调
     )
+
+    # 确保启用input_require_grads
+    model.enable_input_require_grads()
 
     # 手动处理恢复逻辑 - 不使用trainer.train(resume_from_checkpoint)
     if resume_from_checkpoint is not None and rank == 0:
@@ -735,9 +751,9 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
     else:
         base_model = model
 
-    # 如果需要合并权重
-    # merged_model = base_model.merge_and_unload()
-    # merged_model.save_pretrained("./qwen3-vl-2b-instruct-finetuned")
+    如果需要合并权重
+    merged_model = base_model.merge_and_unload()
+    merged_model.save_pretrained("./qwen3-vl-2b-instruct-finetuned")
 
 
 if __name__ == "__main__":
