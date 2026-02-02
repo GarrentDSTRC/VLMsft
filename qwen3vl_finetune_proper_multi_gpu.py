@@ -751,7 +751,6 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
     else:
         base_model = model
 
-    如果需要合并权重
     merged_model = base_model.merge_and_unload()
     merged_model.save_pretrained("./qwen3-vl-2b-instruct-finetuned")
 
