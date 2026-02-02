@@ -23,7 +23,7 @@ class ActionPredictor:
         """
         if model_path is None:
             # 默认使用全量微调模型的checkpoint目录
-            self.model_path = '/mnt/workspace/qwen3-vl-2b-instruct-lora_llm/checkpoint-30'
+            self.model_path = './qwen3-vl-2b-instruct-lora/checkpoint-40'
         else:
             self.model_path = model_path
 
@@ -340,36 +340,36 @@ def main():
         # 初始化预测器
         predictor = ActionPredictor()
 
-        # # ========== 测试1: 通用聊天功能（纯文本）==========
-        # print("\n" + "-"*60)
-        # print("📌 测试1: 通用聊天功能（纯文本提问）")
-        # print("-"*60)
-        # text_prompt = "显微镜使用操作流程与注意事项"
-        # print(f"\n👤 用户提问: {text_prompt}")
-        # print("\n🤖 模型回复:")
-        # try:
-        #     response = predictor.chat(text_prompt, max_new_tokens=400, temperature=0.5)
-        #     print(response)
-        # except Exception as e:
-        #     print(f"[ERROR] 聊天功能出错: {e}")
+        # ========== 测试1: 通用聊天功能（纯文本）==========
+        print("\n" + "-"*60)
+        print("📌 测试1: 通用聊天功能（纯文本提问）")
+        print("-"*60)
+        text_prompt = "显微镜使用操作流程与注意事项"
+        print(f"\n👤 用户提问: {text_prompt}")
+        print("\n🤖 模型回复:")
+        try:
+            response = predictor.chat(text_prompt, max_new_tokens=400, temperature=0.5)
+            print(response)
+        except Exception as e:
+            print(f"[ERROR] 聊天功能出错: {e}")
 
-#         # # ========== 测试2: 通用聊天功能（带图片）==========
-#         print("\n" + "-"*60)
-#         print("📌 测试2: 通用聊天功能（带图片描述）")
-#         print("-"*60)
-#         img_prompt = "请描述这张图片中写的有什么字"
-#         # 提供具体的图片路径
-#         test_img_path = "./test.png"    # 替换为实际的图片路径
-#         print(f"\n🖼️  使用的图片路径: {test_img_path}")
-#         print(f"👤 用户提问: {img_prompt}")
-#         print("\n🤖 模型回复:")
-#         try:
-#             response = predictor.chat(img_prompt, images=[test_img_path], max_new_tokens=200)
-#             print(response)
-#         except Exception as e:
-#             print(f"[ERROR] 图片聊天功能出错: {e}")
+        # # ========== 测试2: 通用聊天功能（带图片）==========
+        print("\n" + "-"*60)
+        print("📌 测试2: 通用聊天功能（带图片描述）")
+        print("-"*60)
+        img_prompt = "请描述这张图片中写的有什么字"
+        # 提供具体的图片路径
+        test_img_path = "./test.png"    # 替换为实际的图片路径
+        print(f"\n🖼️  使用的图片路径: {test_img_path}")
+        print(f"👤 用户提问: {img_prompt}")
+        print("\n🤖 模型回复:")
+        try:
+            response = predictor.chat(img_prompt, images=[test_img_path], max_new_tokens=200)
+            print(response)
+        except Exception as e:
+            print(f"[ERROR] 图片聊天功能出错: {e}")
 
-#         # ========== 测试3: 动作预测功能 ==========
+        # ========== 测试3: 动作预测功能 ==========
         print("\n" + "-"*60)
         print("📌 测试3: 动作预测功能（连续帧）")
         print("-"*60)
@@ -401,3 +401,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

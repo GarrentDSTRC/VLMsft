@@ -61,14 +61,21 @@ def prepare_dataset(config):
         if not isinstance(images, list):
             images = [images] if images else []
 
+        # 构建消息内容，支持多个图像
+        content_list = []
+
+        # 添加所有图像
+        for _ in images:
+            content_list.append({"type": "image"})
+
+        # 添加文本内容
+        content_list.append({"type": "text", "text": user_text})
+
         # 将复杂的消息结构存储为JSON字符串，避免PyArrow嵌套结构问题
         messages_json = json.dumps([
             {
                 "role": "user",
-                "content": [
-                    {"type": "image"},
-                    {"type": "text", "text": user_text}
-                ]
+                "content": content_list
             },
             {
                 "role": "assistant",
@@ -125,12 +132,15 @@ class DataCollatorForQwen3VL:
             import json as json_module
             messages = json_module.loads(feature['messages_json'])
 
-            # 加载图像
-            img = None
+            # 加载多个图像
+            pil_images = []
             if feature.get('images'):
-                img = self.load_image(feature['images'][0])
+                for img_path in feature['images']:
+                    img = self.load_image(img_path)
+                    if img is not None:
+                        pil_images.append(img)
 
-            if img is None:
+            if not pil_images:
                 continue  # 跳过没有图像的样本
 
             # 应用聊天模板
@@ -140,10 +150,10 @@ class DataCollatorForQwen3VL:
                 add_generation_prompt=False
             )
 
-            # 处理文本和图像
+            # 处理文本和多个图像
             inputs = self.processor(
                 text=[formatted_text],
-                images=[img],
+                images=pil_images,
                 padding=True,
                 truncation=True,
                 max_length=2048,
@@ -153,8 +163,16 @@ class DataCollatorForQwen3VL:
             # 提取各个组件
             batch['input_ids'].append(inputs['input_ids'][0])
             batch['attention_mask'].append(inputs['attention_mask'][0])
-            batch['pixel_values'].append(inputs['pixel_values'])
-            batch['image_grid_thw'].append(inputs['image_grid_thw'][0])
+
+            # 正确处理多个图像的pixel_values和image_grid_thw
+            # 将所有图像的pixel_values连接起来
+            if inputs['pixel_values'].dim() == 4:  # 如果已经是批量维度
+                batch['pixel_values'].append(inputs['pixel_values'])
+            else:  # 如果不是批量维度，则扩展维度
+                batch['pixel_values'].append(inputs['pixel_values'].unsqueeze(0))
+
+            # image_grid_thw也需要正确处理
+            batch['image_grid_thw'].append(inputs['image_grid_thw'])
 
             # 创建labels - 只对assistant部分计算损失
             input_ids = inputs['input_ids'][0]
@@ -203,8 +221,17 @@ class DataCollatorForQwen3VL:
             batch['input_ids'] = torch.stack(padded_input_ids)
             batch['attention_mask'] = torch.stack(padded_attention_masks)
             batch['labels'] = torch.stack(padded_labels)
-            batch['pixel_values'] = torch.cat(batch['pixel_values'], dim=0)
-            batch['image_grid_thw'] = torch.stack(batch['image_grid_thw'])
+
+            # 正确堆叠pixel_values和image_grid_thw
+            # 对于Qwen3-VL，我们需要特别小心处理这些张量
+            if len(batch['pixel_values']) > 0:
+                # pixel_values可能有不同的形状，需要特殊处理
+                batch['pixel_values'] = torch.cat(batch['pixel_values'], dim=0)
+
+            if len(batch['image_grid_thw']) > 0:
+                # image_grid_thw的形状可能不同，需要特殊处理
+                # 将所有image_grid_thw连接起来
+                batch['image_grid_thw'] = torch.cat(batch['image_grid_thw'], dim=0)
 
         return batch
 
@@ -648,7 +675,13 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
         sample = train_dataset[0]
         import json as json_module
         test_messages = json_module.loads(sample["messages_json"])  # 从JSON字符串解析messages
-        test_image = DataCollatorForQwen3VL(processor, config).load_image(sample["images"][0])
+
+        # 加载所有图像
+        test_images = []
+        for img_path in sample["images"]:
+            img = DataCollatorForQwen3VL(processor, config).load_image(img_path)
+            if img is not None:
+                test_images.append(img)
 
         # 使用apply_chat_template处理消息
         formatted_text = processor.apply_chat_template(
@@ -659,7 +692,7 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
 
         test_batch = processor(
             text=formatted_text,
-            images=[test_image] if test_image else None,
+            images=test_images if test_images else None,
             padding=True,
             return_tensors="pt"
         )
@@ -697,7 +730,7 @@ def fine_tune(config_path="./config/multi_gpu_config.yaml"):
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         data_collator=DataCollatorForQwen3VL(processor, config),
-        processing_class=processor,
+        tokenizer=processor,  # 使用tokenizer参数而不是processing_class
         callbacks=[SafeSaveCallback(finetune_method=config['finetune_method'])],  # 添加安全保存回调
     )
 
