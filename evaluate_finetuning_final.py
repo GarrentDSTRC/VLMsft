@@ -280,11 +280,12 @@ def evaluate_model(model, processor, test_data, config, model_name="模型", log
     """评估模型性能"""
     print(f"\n开始评估 {model_name}...")
 
-    correct_predictions = 0
     total_samples = 0
     predictions = []
     references = []
     detailed_results = []  # 存储详细结果
+    direction_predictions = []  # 存储方向预测结果
+    distance_errors = []  # 存储距离误差
 
     # 限制测试样本数量以节省时间
     test_samples = test_data[:min(config.get('max_test_samples', 60), len(test_data))]
@@ -296,6 +297,7 @@ def evaluate_model(model, processor, test_data, config, model_name="模型", log
             question = item.get('question', '')
             expected_answer = item.get('answer', '')
             sample_id = item.get('id', f'sample_{i}')
+            image_paths = item.get('images', [])
 
             if not question or not expected_answer:
                 print(" (跳过 - 缺少问题或答案)")
@@ -307,83 +309,68 @@ def evaluate_model(model, processor, test_data, config, model_name="模型", log
             from PIL import Image
             import io
 
-            if 'images' in item and item['images']:
-                # 包含图像的消息格式
-                image_path = item['images'][0]  # 假设只处理第一个图像
+            if image_paths and len(image_paths) > 0:
+                # 处理多个图像（如测试数据中的双图像场景）
+                pil_images = []
 
-                # 检查图像路径是本地文件还是base64
-                if image_path.startswith('data:image'):
-                    # 处理base64图像
-                    base64_str = image_path.split(',')[1]
-                    image_bytes = base64.b64decode(base64_str)
-                    pil_image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-                else:
-                    # 处理本地文件路径
-                    # 如果是相对路径，尝试在几个可能的位置查找
-                    import os
-                    possible_paths = [
-                        image_path,  # 原始路径
-                        os.path.join(os.path.dirname(config['test_dataset_path']), image_path),  # 相对于数据集文件
-                        os.path.join('.', image_path),  # 相对当前目录
-                        os.path.join('..', image_path),  # 上级目录
-                    ]
-
-                    pil_image = None
-                    for img_path in possible_paths:
-                        if os.path.exists(img_path):
-                            pil_image = Image.open(img_path).convert('RGB')
-                            break
-
-                    if pil_image is None:
-                        print(f"警告: 无法找到图像文件 {image_path}")
-                        # 如果找不到图像，按纯文本处理
-                        messages = [
-                            {
-                                "role": "user",
-                                "content": question
-                            }
-                        ]
-
-                        # 应用对话模板
-                        text = processor.apply_chat_template(
-                            messages,
-                            tokenize=False,
-                            add_generation_prompt=True
-                        )
-
-                        # 准备输入
-                        inputs = processor(
-                            text=text,
-                            return_tensors="pt",
-                            padding=True,
-                            truncation=True,
-                            max_length=2048
-                        )
+                for img_path in image_paths:
+                    # 检查图像路径是本地文件还是base64
+                    if img_path.startswith('data:image'):
+                        # 处理base64图像
+                        base64_str = img_path.split(',')[1]
+                        image_bytes = base64.b64decode(base64_str)
+                        pil_image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
                     else:
-                        # 使用messages格式，包含图像标记，然后应用模板
-                        messages = [
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "image"},
-                                    {"type": "text", "text": question}
-                                ]
-                            }
+                        # 处理本地文件路径
+                        # 如果是相对路径，尝试在几个可能的位置查找
+                        import os
+                        possible_paths = [
+                            img_path,  # 原始路径
+                            os.path.join(os.path.dirname(config['test_dataset_path']), img_path),  # 相对于数据集文件
+                            os.path.join('.', img_path),  # 相对当前目录
+                            os.path.join('..', img_path),  # 上级目录
                         ]
 
-                        # 应用对话模板
-                        text = processor.apply_chat_template(
-                            messages,
-                            tokenize=False,
-                            add_generation_prompt=True
-                        )
+                        pil_image = None
+                        for path_option in possible_paths:
+                            if os.path.exists(path_option):
+                                pil_image = Image.open(path_option).convert('RGB')
+                                print(f"成功加载图像: {path_option}")
+                                break
 
-                        # 使用processor处理文本和图像
-                        inputs = processor(
-                            text=text,
-                            images=[pil_image],
-                            return_tensors="pt"
-                        )
+                        if pil_image is None:
+                            print(f"警告: 无法找到图像文件 {img_path}")
+                            # 如果找不到图像，跳过这个样本
+                            continue
+
+                    pil_images.append(pil_image)
+
+                # 构建包含多个图像的消息
+                content_list = []
+                for _ in pil_images:
+                    content_list.append({"type": "image"})
+                content_list.append({"type": "text", "text": question})
+
+                messages = [
+                    {
+                        "role": "user",
+                        "content": content_list
+                    }
+                ]
+
+                # 应用对话模板
+                text = processor.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True
+                )
+
+                # 使用processor处理文本和多个图像
+                inputs = processor(
+                    text=text,
+                    images=pil_images,
+                    return_tensors="pt"
+                )
             else:
                 # 纯文本消息格式
                 messages = [
@@ -425,44 +412,61 @@ def evaluate_model(model, processor, test_data, config, model_name="模型", log
 
             # 解码生成结果
             generated_ids_trimmed = generated_ids[:, inputs['input_ids'].shape[1]:]
-
             # 确保解码在CPU上进行以避免设备不匹配
             generated_ids_trimmed = generated_ids_trimmed.cpu()
             predicted_answer = processor.tokenizer.decode(
                 generated_ids_trimmed[0],
                 skip_special_tokens=True
             ).strip()
+            print("predictanswer",predicted_answer)
+            # 尝试解析JSON格式的预测结果
+            direction_correct = False
+            distance_error = 0
+            try:
+                # 尝试提取JSON
+                json_str = None
+                patterns = [
+                    r'\{[^{}]*"direction"[^{}]*"distance"[^{}]*\}',
+                    r'\{.*?\}',
+                    predicted_answer.strip()
+                ]
 
-            # 检查预测是否与期望答案匹配
-            expected_clean = re.sub(r'[^\w\s]', '', expected_answer.lower().strip())
-            predicted_clean = re.sub(r'[^\w\s]', '', predicted_answer.lower().strip())
+                for pattern in patterns:
+                    if pattern.startswith('{'):
+                        json_str = pattern
+                        break
+                    match = re.search(pattern, predicted_answer, re.DOTALL)
+                    if match:
+                        json_str = match.group()
+                        break
 
-            # 多种匹配策略
-            is_correct = False
-            if expected_clean == predicted_clean:
-                is_correct = True
-            elif expected_clean in predicted_clean or predicted_clean in expected_clean:
-                is_correct = True
-            else:
-                # 关键词匹配
-                expected_words = set(expected_clean.split())
-                predicted_words = set(predicted_clean.split())
+                if json_str:
+                    pred_result = json.loads(json_str)
+                    pred_direction = str(pred_result.get("direction", "-")).strip()
+                    pred_distance = abs(int(pred_result.get("distance", 0)))  # 取绝对值
 
-                if len(expected_words) > 0:
-                    common_words = expected_words.intersection(predicted_words)
-                    if len(common_words) / len(expected_words) >= 0.8:  # 60%的关键词匹配
-                        is_correct = True
+                    # 解析期望答案
+                    expected_result = json.loads(expected_answer)
+                    exp_direction = str(expected_result.get("direction", "-")).strip()
+                    exp_distance = abs(int(expected_result.get("distance", 0)))  # 取绝对值
 
-            if is_correct:
-                correct_predictions += 1
-                status = "✓"
-            else:
-                status = "✗"
+                    # 检查方向预测是否正确
+                    direction_correct = (pred_direction == exp_direction)
+
+                    # 计算距离误差
+                    distance_error = abs(pred_distance - exp_distance)
+
+            except (json.JSONDecodeError, ValueError, TypeError):
+                # 如果JSON解析失败，标记为错误
+                direction_correct = False
+                distance_error = float('inf')  # 使用无穷大表示无法计算的误差
 
             total_samples += 1
 
             predictions.append(predicted_answer)
             references.append(expected_answer)
+            direction_predictions.append(direction_correct)
+            distance_errors.append(distance_error)
 
             # 记录详细结果
             detailed_result = {
@@ -470,12 +474,13 @@ def evaluate_model(model, processor, test_data, config, model_name="模型", log
                 'question': question,
                 'expected_answer': expected_answer,
                 'predicted_answer': predicted_answer,
-                'is_correct': is_correct,
-                'status': status
+                'direction_correct': direction_correct,
+                'distance_error': distance_error,
+                'status': '✓' if direction_correct else '✗'
             }
             detailed_results.append(detailed_result)
 
-            print(f" {status}")
+            print(f" {detailed_result['status']}")
 
         except Exception as e:
             print(f" 错误: {e}")
@@ -485,18 +490,27 @@ def evaluate_model(model, processor, test_data, config, model_name="模型", log
                 'question': item.get('question', ''),
                 'expected_answer': item.get('answer', ''),
                 'predicted_answer': f'ERROR: {str(e)}',
-                'is_correct': False,
+                'direction_correct': False,
+                'distance_error': float('inf'),
                 'status': '✗'
             }
             detailed_results.append(detailed_result)
+            direction_predictions.append(False)
+            distance_errors.append(float('inf'))
             continue
 
-    accuracy = correct_predictions / total_samples if total_samples > 0 else 0
+    # 计算方向预测准确率
+    direction_accuracy = sum(1 for x in direction_predictions if x) / total_samples if total_samples > 0 else 0
+
+    # 计算平均距离误差（排除无法计算的样本）
+    valid_distance_errors = [err for err in distance_errors if err != float('inf')]
+    avg_distance_error = sum(valid_distance_errors) / len(valid_distance_errors) if valid_distance_errors else float('inf')
 
     print(f"\n{model_name} 评估完成")
-    print(f"准确率: {correct_predictions}/{total_samples} ({accuracy:.4f})")
+    print(f"方向预测准确率: {sum(1 for x in direction_predictions if x)}/{total_samples} ({direction_accuracy:.4f})")
+    print(f"平均距离误差: {avg_distance_error:.4f}")
 
-    return accuracy, predictions, references, detailed_results
+    return direction_accuracy, avg_distance_error, predictions, references, detailed_results
 
 def main():
     """主函数"""
@@ -523,20 +537,22 @@ def main():
     print("\n" + "-"*60)
     print("评估微调模型 (Qwen3-VL-2B-Instruct-LoRA)...")
     ft_model, ft_processor = prepare_model(config, is_finetuned=True)
-    ft_acc, ft_preds, ft_refs, ft_detailed_results = evaluate_model(ft_model, ft_processor, test_data, config, "微调模型")
+    ft_dir_acc, ft_avg_dist_err, ft_preds, ft_refs, ft_detailed_results = evaluate_model(ft_model, ft_processor, test_data, config, "微调模型")
 
     # 评估基础模型
     print("\n" + "-"*60)
     print("评估基础模型 (Qwen3-VL-2B-Instruct)...")
     base_model, base_processor = prepare_model(config, is_finetuned=False)
-    base_acc, base_preds, base_refs, base_detailed_results = evaluate_model(base_model, base_processor, test_data, config, "基础模型")
+    base_dir_acc, base_avg_dist_err, base_preds, base_refs, base_detailed_results = evaluate_model(base_model, base_processor, test_data, config, "基础模型")
 
     # 计算改进
-    acc_improvement = ft_acc - base_acc
-    if base_acc != 0:
-        improvement_percentage = (acc_improvement / base_acc) * 100
+    dir_acc_improvement = ft_dir_acc - base_dir_acc
+    dist_err_improvement = ft_avg_dist_err - base_avg_dist_err  # 负值表示改进
+
+    if base_dir_acc != 0:
+        dir_improvement_percentage = (dir_acc_improvement / base_dir_acc) * 100
     else:
-        improvement_percentage = float('inf') if acc_improvement > 0 else float('-inf')
+        dir_improvement_percentage = float('inf') if dir_acc_improvement > 0 else float('-inf')
 
     # 显示比较结果
     print("\n" + "="*70)
@@ -545,25 +561,37 @@ def main():
     print(f"测试样本数: {min(60, len(test_data))}")
     print()
     print("微调模型:")
-    print(f"  准确率: {ft_acc:.4f}")
+    print(f"  方向预测准确率: {ft_dir_acc:.4f}")
+    print(f"  平均距离误差: {ft_avg_dist_err:.4f}")
     print()
     print("基础模型:")
-    print(f"  准确率: {base_acc:.4f}")
+    print(f"  方向预测准确率: {base_dir_acc:.4f}")
+    print(f"  平均距离误差: {base_avg_dist_err:.4f}")
     print()
     print("性能改进:")
-    print(f"  绝对改进: {acc_improvement:+.4f}")
-    print(f"  相对改进: {improvement_percentage:+.2f}%")
+    print(f"  方向准确率改进: {dir_acc_improvement:+.4f}")
+    print(f"  方向准确率相对改进: {dir_improvement_percentage:+.2f}%")
+    print(f"  距离误差改进: {dist_err_improvement:+.4f}")
 
     # 分析改进情况
     print()
-    if acc_improvement > 0.01:  # 超过1%的改进
-        print("🎉 微调显著提升了模型性能!")
-    elif acc_improvement > 0:
-        print("✅ 微调对模型有轻微改进")
-    elif acc_improvement == 0:
-        print("→ 微调对模型性能无影响")
+    if dir_acc_improvement > 0.01:  # 超过1%的改进
+        print("🎉 微调显著提升了方向预测准确率!")
+    elif dir_acc_improvement > 0:
+        print("✅ 微调对方向预测有轻微改进")
+    elif dir_acc_improvement == 0:
+        print("→ 微调对方向预测准确率无影响")
     else:
-        print("⚠️  微调后模型性能略有下降")
+        print("⚠️  微调后方向预测准确率略有下降")
+
+    if dist_err_improvement < -0.1:  # 距离误差减少超过0.1
+        print("✅ 微调显著降低了距离预测误差!")
+    elif dist_err_improvement < 0:
+        print("✅ 微调略微降低了距离预测误差")
+    elif dist_err_improvement == 0:
+        print("→ 微调对距离预测误差无影响")
+    else:
+        print("⚠️  微调后距离预测误差有所增加")
 
     # 显示详细结果示例
     print("\n" + "-"*70)
@@ -587,23 +615,30 @@ def main():
                 'question': base_detailed_results[i]['question'],
                 'expected_answer': base_detailed_results[i]['expected_answer'],
                 'ft_prediction': ft_detailed_results[i]['predicted_answer'],
-                'ft_is_correct': ft_detailed_results[i]['is_correct'],
+                'ft_direction_correct': ft_detailed_results[i]['direction_correct'],
+                'ft_distance_error': ft_detailed_results[i]['distance_error'],
                 'ft_status': ft_detailed_results[i]['status'],
                 'base_prediction': base_detailed_results[i]['predicted_answer'],
-                'base_is_correct': base_detailed_results[i]['is_correct'],
+                'base_direction_correct': base_detailed_results[i]['direction_correct'],
+                'base_distance_error': base_detailed_results[i]['distance_error'],
                 'base_status': base_detailed_results[i]['status'],
-                'improved': ft_detailed_results[i]['is_correct'] and not base_detailed_results[i]['is_correct'],
-                'regressed': not ft_detailed_results[i]['is_correct'] and base_detailed_results[i]['is_correct']
+                'dir_improved': ft_detailed_results[i]['direction_correct'] and not base_detailed_results[i]['direction_correct'],
+                'dir_regressed': not ft_detailed_results[i]['direction_correct'] and base_detailed_results[i]['direction_correct'],
+                'dist_improved': ft_detailed_results[i]['distance_error'] < base_detailed_results[i]['distance_error'],
+                'dist_regressed': ft_detailed_results[i]['distance_error'] > base_detailed_results[i]['distance_error']
             }
             comparison_results.append(comparison_entry)
 
     # 保存评估结果
     evaluation_results = {
         'test_samples_count': min(config.get('max_test_samples', 60), len(test_data)),
-        'fine_tuned_model_accuracy': ft_acc,
-        'base_model_accuracy': base_acc,
-        'absolute_improvement': acc_improvement,
-        'relative_improvement_percent': improvement_percentage,
+        'fine_tuned_model_direction_accuracy': ft_dir_acc,
+        'fine_tuned_model_avg_distance_error': ft_avg_dist_err,
+        'base_model_direction_accuracy': base_dir_acc,
+        'base_model_avg_distance_error': base_avg_dist_err,
+        'direction_accuracy_improvement': dir_acc_improvement,
+        'distance_error_improvement': dist_err_improvement,
+        'direction_relative_improvement_percent': dir_improvement_percentage,
         'timestamp': str(datetime.datetime.now()),
         'test_samples_preview': [
             {
@@ -632,35 +667,46 @@ def main():
         f.write("="*70 + "\n")
         f.write(f"评估时间: {datetime.datetime.now()}\n")
         f.write(f"测试样本数: {min(config.get('max_test_samples', 60), len(test_data))}\n")
-        f.write(f"微调模型准确率: {ft_acc:.4f}\n")
-        f.write(f"基础模型准确率: {base_acc:.4f}\n")
-        f.write(f"绝对改进: {acc_improvement:+.4f}\n")
-        f.write(f"相对改进: {improvement_percentage:+.2f}%\n")
+        f.write(f"微调模型方向准确率: {ft_dir_acc:.4f}\n")
+        f.write(f"微调模型平均距离误差: {ft_avg_dist_err:.4f}\n")
+        f.write(f"基础模型方向准确率: {base_dir_acc:.4f}\n")
+        f.write(f"基础模型平均距离误差: {base_avg_dist_err:.4f}\n")
+        f.write(f"方向准确率改进: {dir_acc_improvement:+.4f}\n")
+        f.write(f"距离误差改进: {dist_err_improvement:+.4f}\n")
 
         f.write("\n" + "="*70 + "\n")
         f.write("详细对比结果:\n")
         f.write("="*70 + "\n")
 
-        improved_count = 0
-        regressed_count = 0
-        same_count = 0
+        dir_improved_count = 0
+        dir_regressed_count = 0
+        dist_improved_count = 0
+        dist_regressed_count = 0
 
         for i, result in enumerate(comparison_results):
             f.write(f"样本 {i+1} (ID: {result['sample_id']}):\n")
             f.write(f"  问题: {result['question']}\n")
             f.write(f"  标准答案: {result['expected_answer']}\n")
-            f.write(f"  微调模型预测: {result['ft_prediction']} [{result['ft_status']}]\n")
-            f.write(f"  基础模型预测: {result['base_prediction']} [{result['base_status']}]\n")
+            f.write(f"  微调模型预测: {result['ft_prediction']} [方向{'✓' if result['ft_direction_correct'] else '✗'}, 距离误差: {result['ft_distance_error']:.2f}]\n")
+            f.write(f"  基础模型预测: {result['base_prediction']} [方向{'✓' if result['base_direction_correct'] else '✗'}, 距离误差: {result['base_distance_error']:.2f}]\n")
 
-            if result['improved']:
-                f.write(f"  结果: ✅ 微调模型改进\n")
-                improved_count += 1
-            elif result['regressed']:
-                f.write(f"  结果: ❌ 微调模型退步\n")
-                regressed_count += 1
+            if result['dir_improved']:
+                f.write(f"  方向预测: ✅ 微调模型改进\n")
+                dir_improved_count += 1
+            elif result['dir_regressed']:
+                f.write(f"  方向预测: ❌ 微调模型退步\n")
+                dir_regressed_count += 1
             else:
-                f.write(f"  结果: ↔️  无变化\n")
-                same_count += 1
+                f.write(f"  方向预测: ↔️  无变化\n")
+
+            if result['dist_improved']:
+                f.write(f"  距离预测: ✅ 微调模型改进 (误差减少 {result['base_distance_error'] - result['ft_distance_error']:.2f})\n")
+                dist_improved_count += 1
+            elif result['dist_regressed']:
+                f.write(f"  距离预测: ❌ 微调模型退步 (误差增加 {result['ft_distance_error'] - result['base_distance_error']:.2f})\n")
+                dist_regressed_count += 1
+            else:
+                f.write(f"  距离预测: ↔️  无变化\n")
 
             f.write("\n")
 
@@ -668,12 +714,16 @@ def main():
         f.write("统计摘要:\n")
         f.write("="*70 + "\n")
         f.write(f"总样本数: {len(comparison_results)}\n")
-        f.write(f"微调改进样本数: {improved_count}\n")
-        f.write(f"微调退步样本数: {regressed_count}\n")
-        f.write(f"无变化样本数: {same_count}\n")
-        f.write(f"微调模型准确率: {ft_acc:.4f}\n")
-        f.write(f"基础模型准确率: {base_acc:.4f}\n")
-        f.write(f"准确率提升: {acc_improvement:+.4f}\n")
+        f.write(f"方向预测改进样本数: {dir_improved_count}\n")
+        f.write(f"方向预测退步样本数: {dir_regressed_count}\n")
+        f.write(f"距离预测改进样本数: {dist_improved_count}\n")
+        f.write(f"距离预测退步样本数: {dist_regressed_count}\n")
+        f.write(f"微调模型方向准确率: {ft_dir_acc:.4f}\n")
+        f.write(f"基础模型方向准确率: {base_dir_acc:.4f}\n")
+        f.write(f"方向准确率提升: {dir_acc_improvement:+.4f}\n")
+        f.write(f"微调模型平均距离误差: {ft_avg_dist_err:.4f}\n")
+        f.write(f"基础模型平均距离误差: {base_avg_dist_err:.4f}\n")
+        f.write(f"距离误差改进: {dist_err_improvement:+.4f}\n")
 
     print(f"详细评估结果已保存到: {result_file}")
     print(f"详细对比日志已保存到: {log_file}")

@@ -23,7 +23,7 @@ class ActionPredictor:
         """
         if model_path is None:
             # 默认使用全量微调模型的checkpoint目录
-            self.model_path = '/mnt/workspace/qwen3-vl-2b-instruct-lora/checkpoint-60'
+            self.model_path = '/mnt/workspace/qwen3-vl-2b-instruct-lora_llm/checkpoint-30'
         else:
             self.model_path = model_path
 
@@ -149,12 +149,7 @@ class ActionPredictor:
         pil_img2 = self._process_image(image2)
         
         # 构建专业提示词
-        prompt = """请严格分析这两张连续帧图像中的物体运动：
-1. 确定水平运动方向：向右为"+", 向左为"-"
-2. 估算像素级移动距离（取整数）
-3. 以标准JSON格式输出，仅包含以下字段：
-   {"direction": "+/-", "distance": 整数}
-不要添加任何额外说明或文字。"""
+        prompt = """请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。 - 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（"-"）移动； - 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（"+"）移动。 请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释： {"analysis": "电机应该向{x}方向移动{y}步。", "direction": "{x}", "distance": {y}} 注意： - "direction" 只能是 "+" 或 "-"； - "distance" 必须是非负整数（如 0, 1, 2, ...）； - "analysis" 中的方向和步数必须与 direction 和 distance 字段一致； - 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。"""
         
         # 构建消息
         messages = [{
@@ -180,52 +175,66 @@ class ActionPredictor:
         # 处理图片
         pil_images = []
         content = []
-        
+
         if images:
             if not isinstance(images, list):
                 images = [images]
-            
+
             for img in images:
+                # 使用更健壮的图片处理方式
                 pil_img = self._process_image(img)
                 pil_images.append(pil_img)
                 content.append({"type": "image"})
-        
+
         # 添加文本提示
         content.append({"type": "text", "text": prompt})
-        
+
         # 构建消息
         messages = [{"role": "user", "content": content}]
-        
+
         # 处理输入
         text = self.processor.apply_chat_template(
-            messages, 
-            tokenize=False, 
+            messages,
+            tokenize=False,
             add_generation_prompt=True
         )
-        
-        inputs = self.processor(
-            text=text,
-            images=pil_images if pil_images else None,
-            return_tensors="pt"
-        ).to(self.device)
-        
+
+        # 使用更健壮的输入处理方式
+        if pil_images:
+            inputs = self.processor(
+                text=[text],
+                images=pil_images,
+                padding=True,
+                return_tensors="pt"
+            )
+        else:
+            inputs = self.processor(
+                text=[text],
+                padding=True,
+                return_tensors="pt"
+            )
+
+        # 确保所有输入张量都在同一设备上
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+
         # 生成回复
         with torch.no_grad():
             generated_ids = self.model.generate(
                 **inputs,
                 max_new_tokens=max_new_tokens,
                 temperature=temperature,
-                do_sample=temperature > 0
+                do_sample=temperature > 0,
+                pad_token_id=self.processor.tokenizer.eos_token_id
             )
-        
+
         # 提取生成内容（去除输入部分）
-        generated_ids_trimmed = generated_ids[:, inputs.input_ids.shape[1]:]
+        generated_ids_trimmed = generated_ids[:, inputs['input_ids'].shape[1]:]
         response = self.processor.batch_decode(
-            generated_ids_trimmed, 
-            skip_special_tokens=True, 
+            generated_ids_trimmed,
+            skip_special_tokens=True,
             clean_up_tokenization_spaces=False
         )[0].strip()
-        
+
         return response
     
     def _extract_action(self, messages, pil_images):
@@ -235,28 +244,34 @@ class ActionPredictor:
             tokenize=False,
             add_generation_prompt=True
         )
-        
+
+        # 使用更健壮的输入处理方式
         inputs = self.processor(
-            text=text,
+            text=[text],
             images=pil_images,
+            padding=True,
             return_tensors="pt"
-        ).to(self.device)
-        
+        )
+
+        # 确保所有输入张量都在同一设备上
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+
         with torch.no_grad():
             generated_ids = self.model.generate(
                 **inputs,
                 max_new_tokens=128,
-                temperature=0.1
+                temperature=0.1,
+                pad_token_id=self.processor.tokenizer.eos_token_id
             )
-        
-        generated_ids_trimmed = generated_ids[:, inputs.input_ids.shape[1]:]
+
+        generated_ids_trimmed = generated_ids[:, inputs['input_ids'].shape[1]:]
         output = self.processor.batch_decode(
             generated_ids_trimmed,
             skip_special_tokens=True
         )[0].strip()
-        
+
         print(f"[DEBUG] 模型原始输出: {output}")
-        
+
         # 尝试提取JSON
         try:
             # 多种JSON提取策略
@@ -266,7 +281,7 @@ class ActionPredictor:
                 r'\{.*?\}',
                 output.strip()
             ]
-            
+
             for pattern in patterns:
                 if pattern.startswith('{'):
                     json_str = pattern
@@ -275,33 +290,33 @@ class ActionPredictor:
                 if match:
                     json_str = match.group()
                     break
-            
+
             if json_str:
                 result = json.loads(json_str)
                 direction = str(result.get("direction", "-")).strip()
                 distance = result.get("distance", 0)
-                
+
                 # 转换格式
                 direction_bool = direction == "+"
                 distance_int = int(distance) if isinstance(distance, (int, float)) else 0
-                
+
                 print(f"[SUCCESS] 解析结果: direction={direction_bool} ({direction}), distance={distance_int}")
                 return direction_bool, distance_int
-            
+
         except (json.JSONDecodeError, ValueError, TypeError) as e:
             print(f"[WARNING] JSON解析失败: {e}")
-        
+
         # 失败回退策略：正则提取
         print("[INFO] 尝试正则回退解析...")
         dir_match = re.search(r'"direction"\s*:\s*"([^"]+)"', output)
         dist_match = re.search(r'"distance"\s*:\s*(\d+)', output)
-        
+
         if dir_match and dist_match:
             direction_bool = dir_match.group(1).strip() == "+"
             distance_int = int(dist_match.group(1))
             print(f"[SUCCESS] 正则解析成功: direction={direction_bool}, distance={distance_int}")
             return direction_bool, distance_int
-        
+
         print("[ERROR] 无法解析动作信息，返回默认值")
         return False, 0
     
@@ -320,65 +335,65 @@ def main():
     print("\n" + "="*60)
     print("🚀 增强版动作预测器 - 功能测试")
     print("="*60)
-    
+
     try:
         # 初始化预测器
         predictor = ActionPredictor()
-        
-        # ========== 测试1: 通用聊天功能（纯文本）==========
-        print("\n" + "-"*60)
-        print("📌 测试1: 通用聊天功能（纯文本提问）")
-        print("-"*60)
-        text_prompt = "显微镜使用操作流程与注意事项"
-        print(f"\n👤 用户提问: {text_prompt}")
-        print("\n🤖 模型回复:")
-        try:
-            response = predictor.chat(text_prompt, max_new_tokens=400, temperature=0.5)
-            print(response)
-        except Exception as e:
-            print(f"[ERROR] 聊天功能出错: {e}")
-        
-        # ========== 测试2: 通用聊天功能（带图片）==========
-        print("\n" + "-"*60)
-        print("📌 测试2: 通用聊天功能（带图片描述）")
-        print("-"*60)
-        img_prompt = "请描述这张图片中的主要内容和关键细节"
-        # 提供具体的图片路径
-        test_img_path = "./data/vlm_finetune_dataset_fixed/images/sample_0_29_0.png"    # 替换为实际的图片路径
-        print(f"\n🖼️  使用的图片路径: {test_img_path}")
-        print(f"👤 用户提问: {img_prompt}")
-        print("\n🤖 模型回复:")
-        try:
-            response = predictor.chat(img_prompt, images=[test_img_path], max_new_tokens=200)
-            print(response)
-        except Exception as e:
-            print(f"[ERROR] 图片聊天功能出错: {e}")
-        
-        # ========== 测试3: 动作预测功能 ==========
+
+        # # ========== 测试1: 通用聊天功能（纯文本）==========
+        # print("\n" + "-"*60)
+        # print("📌 测试1: 通用聊天功能（纯文本提问）")
+        # print("-"*60)
+        # text_prompt = "显微镜使用操作流程与注意事项"
+        # print(f"\n👤 用户提问: {text_prompt}")
+        # print("\n🤖 模型回复:")
+        # try:
+        #     response = predictor.chat(text_prompt, max_new_tokens=400, temperature=0.5)
+        #     print(response)
+        # except Exception as e:
+        #     print(f"[ERROR] 聊天功能出错: {e}")
+
+#         # # ========== 测试2: 通用聊天功能（带图片）==========
+#         print("\n" + "-"*60)
+#         print("📌 测试2: 通用聊天功能（带图片描述）")
+#         print("-"*60)
+#         img_prompt = "请描述这张图片中写的有什么字"
+#         # 提供具体的图片路径
+#         test_img_path = "./test.png"    # 替换为实际的图片路径
+#         print(f"\n🖼️  使用的图片路径: {test_img_path}")
+#         print(f"👤 用户提问: {img_prompt}")
+#         print("\n🤖 模型回复:")
+#         try:
+#             response = predictor.chat(img_prompt, images=[test_img_path], max_new_tokens=200)
+#             print(response)
+#         except Exception as e:
+#             print(f"[ERROR] 图片聊天功能出错: {e}")
+
+#         # ========== 测试3: 动作预测功能 ==========
         print("\n" + "-"*60)
         print("📌 测试3: 动作预测功能（连续帧）")
         print("-"*60)
         # 提供两张有位移变化的图片路径
-        frame1_path = "./data/vlm_finetune_dataset_fixed/images/sample_0_29_0.png"  # 替换为实际的第一张图片路径
-        frame2_path = "./data/vlm_finetune_dataset_fixed/images/sample_0_29_1.png"  # 替换为实际的第二张图片路径
+        frame1_path = "./data/vlm_finetune_dataset_fixed/images/sample_0_25_0.png"  # 替换为实际的第一张图片路径
+        frame2_path = "./data/vlm_finetune_dataset_fixed/images/sample_0_25_1.png"  # 替换为实际的第二张图片路径
         print(f"使用的图片路径:\n   Frame 1: {frame1_path}\n   Frame 2: {frame2_path}")
         try:
             direction, distance = predictor.get_action(frame1_path, frame2_path)
             print(f"\n🎯 预测结果:")
-            print(f"   • 方向: {'→ 向右 (+)' if direction else '← 向左 (-)'}")
+            print(f"   • 方向: {'→ 向右 (+)' if direction else '← 向左 (-)'}")  # 修正方向描述
             print(f"   • 距离: {distance} 像素")
         except Exception as e:
             print(f"[ERROR] 动作预测测试出错: {e}")
-        
+
         print("\n" + "="*60)
         print("✅ 所有测试完成！")
         print("="*60 + "\n")
-    
+
     except Exception as e:
         print(f"\n❌ 测试过程中发生错误: {e}")
         import traceback
         traceback.print_exc()
-    
+
     finally:
         # 确保资源释放
         if 'predictor' in locals():

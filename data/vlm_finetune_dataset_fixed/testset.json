@@ -1,0 +1,128 @@
+[
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向+方向移动14步。\", \"direction\": \"+\", \"distance\": 14}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_29_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_29_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向+方向移动10步。\", \"direction\": \"+\", \"distance\": 10}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_31_25_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_31_25_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向+方向移动8步。\", \"direction\": \"+\", \"distance\": 8}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_23_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_23_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向-方向移动8步。\", \"direction\": \"-\", \"distance\": 8}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_7_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_7_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向-方向移动7步。\", \"direction\": \"-\", \"distance\": 7}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_8_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_8_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向+方向移动5步。\", \"direction\": \"+\", \"distance\": 5}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向+方向移动4步。\", \"direction\": \"+\", \"distance\": 4}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/test_sample_46_8_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/test_sample_46_8_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向+方向移动7步。\", \"direction\": \"+\", \"distance\": 7}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_22_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_22_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向+方向移动11步。\", \"direction\": \"+\", \"distance\": 11}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_26_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_26_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向-方向移动10步。\", \"direction\": \"-\", \"distance\": 10}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_31_5_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_31_5_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向+方向移动12步。\", \"direction\": \"+\", \"distance\": 12}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_31_27_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_31_27_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向-方向移动13步。\", \"direction\": \"-\", \"distance\": 13}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_62_2_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_62_2_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向-方向移动5步。\", \"direction\": \"-\", \"distance\": 5}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_62_10_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_62_10_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向-方向移动9步。\", \"direction\": \"-\", \"distance\": 9}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_6_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_6_1.png"
+    ]
+  },
+  {
+    "instruction": "<image><image>请分析两张连续拍摄的显微镜图像，判断当前聚焦状态的变化趋势，并据此推断电机应向哪个方向移动多少步以接近最佳聚焦位置。\n\n- 如果第二张图像比第一张更模糊，说明焦点正在远离最佳位置，电机应向负方向（\"-\"）移动；\n- 如果第二张图像比第一张更清晰，说明焦点正在接近最佳位置，电机应继续向正方向（\"+\"）移动。\n\n请基于图像清晰度变化，估计电机需移动的步数（取整数），并严格按照以下 JSON 格式返回结果，不要包含任何额外文本或解释：\n\n{\"analysis\": \"电机应该向{x}方向移动{y}步。\", \"direction\": \"{x}\", \"distance\": {y}}\n\n注意：\n- \"direction\" 只能是 \"+\" 或 \"-\"；\n- \"distance\" 必须是非负整数（如 0, 1, 2, ...）；\n- \"analysis\" 中的方向和步数必须与 direction 和 distance 字段一致；\n- 输出必须是纯 JSON，无 Markdown、无注释、无多余空格或换行。",
+    "input": "",
+    "output": "{\"analysis\": \"电机应该向+方向移动13步。\", \"direction\": \"+\", \"distance\": 13}",
+    "images": [
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_28_0.png",
+      "./data/vlm_finetune_dataset_fixed/images/sample_0_28_1.png"
+    ]
+  }
+]
